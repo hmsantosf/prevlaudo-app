@@ -2,22 +2,13 @@ import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
 export async function GET() {
-  const password = process.env.SMTP_PASSWORD;
-
-  if (!password) {
-    return NextResponse.json(
-      { error: "SMTP_PASSWORD não definida no .env.local" },
-      { status: 500 }
-    );
-  }
-
   const transporter = nodemailer.createTransport({
     host: "email.locaweb.com.br",
     port: 587,
-    secure: false, // STARTTLS
+    secure: false,
     auth: {
       user: "noreply@prevaerus.com.br",
-      pass: password,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 

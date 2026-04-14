@@ -34,6 +34,11 @@ export default function LoginForm() {
       redirect: false,
     });
 
+    if (result?.code === "email_not_confirmed") {
+      setServerError("Confirme seu e-mail antes de acessar");
+      return;
+    }
+
     if (result?.error) {
       setServerError("Email ou senha incorretos");
       return;

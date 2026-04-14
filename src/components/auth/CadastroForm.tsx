@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
-import { signIn } from "next-auth/react";
+
 
 const schema = z
   .object({
@@ -49,14 +49,7 @@ export default function CadastroForm() {
       return;
     }
 
-    await signIn("credentials", {
-      email: data.email,
-      password: data.password,
-      redirect: false,
-    });
-
-    router.push("/dashboard");
-    router.refresh();
+    router.push("/cadastro/verifique-email");
   };
 
   return (

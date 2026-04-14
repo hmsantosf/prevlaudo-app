@@ -1,6 +1,10 @@
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { supabaseAdmin } from "@/lib/supabase";
+
+class EmailNotConfirmedError extends CredentialsSignin {
+  code = "email_not_confirmed";
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -21,6 +25,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (error || !data.user) return null;
+
+        if (!data.user.email_confirmed_at) {
+          throw new EmailNotConfirmedError();
+        }
 
         const { data: profile } = await admin
           .from("profiles")

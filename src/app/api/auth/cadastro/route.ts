@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 import { z } from "zod";
 
 const cadastroSchema = z.object({
@@ -20,12 +20,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { name, email, password } = parsed.data;
-  const admin = supabaseAdmin();
 
-  const { data: authData, error: authError } = await admin.auth.admin.createUser({
+  const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: true,
+    options: {
+      emailRedirectTo: "https://prevaerus.com.br/auth/callback",
+      data: { name },
+    },
   });
 
   if (authError) {
@@ -35,6 +37,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
+  if (!authData.user) {
+    return NextResponse.json({ error: "Erro ao criar conta" }, { status: 500 });
+  }
+
+  // Usuário já cadastrado mas não confirmado (Supabase retorna identities vazio)
+  if (authData.user.identities && authData.user.identities.length === 0) {
+    return NextResponse.json(
+      { error: "Este email já está cadastrado" },
+      { status: 400 }
+    );
+  }
+
+  const admin = supabaseAdmin();
   const { error: profileError } = await admin.from("profiles").insert({
     id: authData.user.id,
     name,

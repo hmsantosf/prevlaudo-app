@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 
 export async function GET() {
   const transporter = nodemailer.createTransport({
-    host: "email.locaweb.com.br",
+    host: "smtp.locaweb.com.br",
     port: 587,
     secure: false,
     auth: {

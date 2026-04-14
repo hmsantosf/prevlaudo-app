@@ -45,7 +45,10 @@ export default function CadastroForm() {
     const json = await res.json();
 
     if (!res.ok) {
-      setServerError(json.error ?? "Erro ao criar conta");
+      const detail = json.details
+        ? ` [${json.details.code}: ${json.details.message}]`
+        : "";
+      setServerError((json.error ?? "Erro ao criar conta") + detail);
       return;
     }
 

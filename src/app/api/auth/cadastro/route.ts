@@ -69,17 +69,33 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = supabaseAdmin();
-    const { error: profileError } = await admin.from("profiles").insert({
-      id: authData.user.id,
-      name,
-      email,
-    });
+
+    const insertPayload = { id: authData.user.id, name, email };
+    console.log("[cadastro] Inserindo profile:", insertPayload);
+
+    const { error: profileError } = await admin.from("profiles").insert(insertPayload);
 
     if (profileError) {
+      // Serializa todas as propriedades, incluindo não-enumeráveis (code, details, hint, message)
+      const fullError = JSON.stringify(profileError, Object.getOwnPropertyNames(profileError));
+      console.error("[cadastro] Erro ao inserir profile:", fullError);
+      console.error("[cadastro] code:", profileError.code);
+      console.error("[cadastro] message:", profileError.message);
+      console.error("[cadastro] details:", profileError.details);
+      console.error("[cadastro] hint:", profileError.hint);
+
       await admin.auth.admin.deleteUser(authData.user.id);
-      const profileMsg = extractErrorMessage(profileError);
+
       return NextResponse.json(
-        { error: `Erro ao criar perfil: ${profileMsg}` },
+        {
+          error: `Erro ao criar perfil`,
+          details: {
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint,
+          },
+        },
         { status: 500 }
       );
     }

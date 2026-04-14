@@ -8,61 +8,85 @@ const cadastroSchema = z.object({
   password: z.string().min(8, "Senha deve ter ao menos 8 caracteres"),
 });
 
+function extractErrorMessage(err: unknown): string {
+  if (!err) return "Erro desconhecido";
+  if (typeof err === "string") return err;
+  if (typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    const msg = e.message ?? e.msg ?? e.code ?? e.error_description ?? e.error;
+    if (typeof msg === "string" && msg.trim()) return msg;
+    // Fallback: tenta serializar o objeto para expor a estrutura real
+    try {
+      return JSON.stringify(err, Object.getOwnPropertyNames(err));
+    } catch {
+      return "Erro desconhecido";
+    }
+  }
+  return String(err);
+}
+
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const parsed = cadastroSchema.safeParse(body);
+  try {
+    const body = await request.json();
+    const parsed = cadastroSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0].message },
-      { status: 400 }
-    );
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const { name, email, password } = parsed.data;
+
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: "https://prevaerus.com.br/auth/callback",
+        data: { name },
+      },
+    });
+
+    if (authError) {
+      const raw = extractErrorMessage(authError);
+      const message = raw.toLowerCase().includes("already registered")
+        ? "Este email já está cadastrado"
+        : raw;
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    if (!authData.user) {
+      return NextResponse.json({ error: "Erro ao criar conta" }, { status: 500 });
+    }
+
+    // Usuário já cadastrado mas não confirmado (Supabase retorna identities vazio)
+    if (authData.user.identities && authData.user.identities.length === 0) {
+      return NextResponse.json(
+        { error: "Este email já está cadastrado" },
+        { status: 400 }
+      );
+    }
+
+    const admin = supabaseAdmin();
+    const { error: profileError } = await admin.from("profiles").insert({
+      id: authData.user.id,
+      name,
+      email,
+    });
+
+    if (profileError) {
+      await admin.auth.admin.deleteUser(authData.user.id);
+      const profileMsg = extractErrorMessage(profileError);
+      return NextResponse.json(
+        { error: `Erro ao criar perfil: ${profileMsg}` },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 201 });
+  } catch (err) {
+    const message = extractErrorMessage(err);
+    return NextResponse.json({ error: `Erro interno: ${message}` }, { status: 500 });
   }
-
-  const { name, email, password } = parsed.data;
-
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: "https://prevaerus.com.br/auth/callback",
-      data: { name },
-    },
-  });
-
-  if (authError) {
-    const message = authError.message.includes("already registered")
-      ? "Este email já está cadastrado"
-      : authError.message;
-    return NextResponse.json({ error: message }, { status: 400 });
-  }
-
-  if (!authData.user) {
-    return NextResponse.json({ error: "Erro ao criar conta" }, { status: 500 });
-  }
-
-  // Usuário já cadastrado mas não confirmado (Supabase retorna identities vazio)
-  if (authData.user.identities && authData.user.identities.length === 0) {
-    return NextResponse.json(
-      { error: "Este email já está cadastrado" },
-      { status: 400 }
-    );
-  }
-
-  const admin = supabaseAdmin();
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: authData.user.id,
-    name,
-    email,
-  });
-
-  if (profileError) {
-    await admin.auth.admin.deleteUser(authData.user.id);
-    return NextResponse.json(
-      { error: "Erro ao criar perfil. Tente novamente." },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ success: true }, { status: 201 });
 }

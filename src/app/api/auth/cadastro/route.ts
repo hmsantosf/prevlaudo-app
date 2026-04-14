@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     const admin = supabaseAdmin();
 
-    const insertPayload = { id: authData.user.id, name, email, user_type: "user" };
+    const insertPayload = { id: authData.user.id, name, email, user_type: "individual" };
     console.log("[cadastro] Inserindo profile:", insertPayload);
 
     const { error: profileError } = await admin.from("profiles").insert(insertPayload);

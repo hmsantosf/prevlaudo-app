@@ -10,7 +10,6 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  Shield,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -34,15 +33,7 @@ export default function Sidebar({ userName, userEmail }: Props) {
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
       {/* Logo */}
       <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Shield className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <span className="font-bold text-gray-900 text-sm">PrevLaudo</span>
-            <p className="text-xs text-gray-400">Benefícios Previdenciários</p>
-          </div>
-        </div>
+        <img src="/prevaerus_logo_transparente.png" alt="prevAERUS" style={{ width: '80%', display: 'block', margin: '0 auto' }} />
       </div>
 
       {/* Navigation */}

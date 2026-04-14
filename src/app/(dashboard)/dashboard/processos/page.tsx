@@ -76,7 +76,7 @@ export default async function ProcessosPage() {
     .eq("user_id", session!.user!.id)
     .order("created_at", { ascending: false });
 
-  const lista = (processos ?? []) as Processo[];
+  const lista = (processos ?? []) as unknown as Processo[];
 
   return (
     <div className="space-y-6">

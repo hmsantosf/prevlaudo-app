@@ -181,7 +181,7 @@ export default async function CalcularPage({
 
   if (!processo) notFound();
 
-  const p = processo as ProcessoDB;
+  const p = processo as any;
   const c = p.clientes;
 
   if (!c) notFound();

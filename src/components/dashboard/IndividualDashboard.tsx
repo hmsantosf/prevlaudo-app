@@ -74,7 +74,7 @@ export default function Dashboard({ userName, clientesRecentes }: Props) {
           <UserPlus className="w-8 h-8 text-blue-200 flex-shrink-0" />
         </div>
         <Link
-          href="/dashboard/clientes/novo"
+          href="/dashboard/processos/novo"
           className="mt-4 inline-flex bg-white text-blue-600 font-semibold text-sm px-5 py-2 rounded-lg hover:bg-blue-50 transition items-center gap-1"
         >
           Novo cliente <ChevronRight className="w-4 h-4" />

@@ -14,7 +14,7 @@ export default async function AuthLayout({
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src="/prevaerus_logo_transparente.png" alt="prevAERUS" style={{ width: '100%', display: 'block', margin: '0', padding: '0' }} />
-          <p className="text-sm text-gray-500" style={{ marginTop: '2px' }}>
+          <p className="text-lg text-gray-500" style={{ marginTop: '2px' }}>
             Revisão de Benefícios Previdenciários
           </p>
         </div>

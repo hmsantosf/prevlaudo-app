@@ -1,29 +1,32 @@
 import Link from "next/link";
-import { FileText, Clock, CheckCircle, Users, ChevronRight, UserPlus } from "lucide-react";
+import { Clock, CheckCircle, Users, ChevronRight, UserPlus, FolderOpen } from "lucide-react";
+
+type ClienteRecente = {
+  id: string;
+  name: string;
+  cpf: string | null;
+  data_relatorio: string | null;
+  created_at: string;
+};
 
 interface Props {
   userName: string;
+  clientesRecentes: ClienteRecente[];
 }
 
-export default function Dashboard({ userName }: Props) {
+export default function Dashboard({ userName, clientesRecentes }: Props) {
   const firstName = userName.split(" ")[0];
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Olá, {firstName}!
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Gerencie seus clientes e processos de revisão previdenciária
-          </p>
-        </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition">
-          <UserPlus className="w-4 h-4" />
-          Novo cliente
-        </button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Olá, {firstName}!
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Gerencie seus clientes e processos de revisão previdenciária
+        </p>
       </div>
 
       {/* Cards de resumo */}
@@ -59,38 +62,63 @@ export default function Dashboard({ userName }: Props) {
         </div>
       </div>
 
-      {/* CTA novo processo */}
+      {/* CTA novo cliente */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="font-semibold text-lg">Iniciar novo processo</h3>
+            <h3 className="font-semibold text-lg">Criar novo cliente</h3>
             <p className="text-blue-100 text-sm mt-1 max-w-xs">
-              Cadastre um cliente e abra uma solicitação de revisão de benefício do INSS
+              Cadastre um novo cliente para iniciar a revisão do benefício
             </p>
           </div>
-          <FileText className="w-8 h-8 text-blue-200 flex-shrink-0" />
+          <UserPlus className="w-8 h-8 text-blue-200 flex-shrink-0" />
         </div>
         <Link
-          href="/dashboard/processos/novo"
+          href="/dashboard/clientes/novo"
           className="mt-4 inline-flex bg-white text-blue-600 font-semibold text-sm px-5 py-2 rounded-lg hover:bg-blue-50 transition items-center gap-1"
         >
-          Novo processo <ChevronRight className="w-4 h-4" />
+          Novo cliente <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
 
-      {/* Lista de processos vazia */}
+      {/* Clientes recentes */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Processos recentes</h2>
-          <button className="text-sm text-blue-600 hover:underline">Ver todos</button>
+          <h2 className="font-semibold text-gray-900">Clientes recentes</h2>
+          <Link href="/dashboard/clientes" className="text-sm text-blue-600 hover:underline">
+            Ver todos
+          </Link>
         </div>
-        <div className="p-12 text-center">
-          <FileText className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">Nenhum processo aberto ainda.</p>
-          <p className="text-gray-400 text-xs mt-1">
-            Cadastre um cliente para começar.
-          </p>
-        </div>
+
+        {clientesRecentes.length === 0 ? (
+          <div className="p-12 text-center">
+            <Users className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">Nenhum cliente cadastrado ainda.</p>
+            <p className="text-gray-400 text-xs mt-1">
+              Cadastre um cliente para começar.
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {clientesRecentes.map((c) => (
+              <li key={c.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{c.name}</p>
+                  {c.cpf && (
+                    <p className="text-xs text-gray-400 mt-0.5">{c.cpf}</p>
+                  )}
+                </div>
+                <Link
+                  href={`/dashboard/clientes/${c.id}/processos`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  Processos
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

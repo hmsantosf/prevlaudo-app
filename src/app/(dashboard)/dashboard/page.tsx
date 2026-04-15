@@ -10,15 +10,24 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const session = await auth();
   const userName = session!.user?.name ?? "Usuário";
+  const userId = session!.user!.id;
+  const admin = supabaseAdmin();
 
-  const { data } = await supabaseAdmin()
-    .from("clientes")
-    .select("id, name, cpf, data_relatorio, created_at")
-    .eq("user_id", session!.user!.id)
-    .order("created_at", { ascending: false })
-    .limit(5);
+  const [{ data: clientesData }, { data: profileData }] = await Promise.all([
+    admin
+      .from("clientes")
+      .select("id, name, cpf, data_relatorio, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    admin
+      .from("profiles")
+      .select("creditos")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
 
-  const clientes = (data ?? []) as {
+  const clientes = (clientesData ?? []) as {
     id: string;
     name: string;
     cpf: string | null;
@@ -26,5 +35,7 @@ export default async function DashboardPage() {
     created_at: string;
   }[];
 
-  return <Dashboard userName={userName} clientesRecentes={clientes} />;
+  const creditos = (profileData as { creditos: number } | null)?.creditos ?? 0;
+
+  return <Dashboard userName={userName} clientesRecentes={clientes} creditos={creditos} />;
 }

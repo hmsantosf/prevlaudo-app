@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock, CheckCircle, Users, ChevronRight, UserPlus, FolderOpen } from "lucide-react";
+import { Clock, CheckCircle, Users, ChevronRight, UserPlus, FolderOpen, Coins } from "lucide-react";
 
 type ClienteRecente = {
   id: string;
@@ -12,9 +12,10 @@ type ClienteRecente = {
 interface Props {
   userName: string;
   clientesRecentes: ClienteRecente[];
+  creditos: number;
 }
 
-export default function Dashboard({ userName, clientesRecentes }: Props) {
+export default function Dashboard({ userName, clientesRecentes, creditos }: Props) {
   const firstName = userName.split(" ")[0];
 
   return (
@@ -30,7 +31,7 @@ export default function Dashboard({ userName, clientesRecentes }: Props) {
       </div>
 
       {/* Cards de resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
           <div className="w-11 h-11 bg-purple-100 rounded-xl flex items-center justify-center">
             <Users className="w-5 h-5 text-purple-600" />
@@ -58,6 +59,16 @@ export default function Dashboard({ userName, clientesRecentes }: Props) {
           <div>
             <p className="text-2xl font-bold text-gray-900">0</p>
             <p className="text-sm text-gray-500">Concluídos</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+          <div className="w-11 h-11 bg-amber-100 rounded-xl flex items-center justify-center">
+            <Coins className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{creditos}</p>
+            <p className="text-sm text-gray-500">Créditos disponíveis</p>
           </div>
         </div>
       </div>

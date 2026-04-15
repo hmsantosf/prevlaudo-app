@@ -33,13 +33,13 @@ export default function Dashboard({ userName, clientesRecentes, creditos, totalC
             Gerencie seus clientes e processos de revisão previdenciária
           </p>
         </div>
-        <button
-          onClick={() => alert("Em breve!")}
+        <Link
+          href="/dashboard/creditos/comprar"
           className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
         >
           <Coins className="w-4 h-4" />
           Comprar créditos
-        </button>
+        </Link>
       </div>
 
       {/* Cards de resumo */}

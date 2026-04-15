@@ -14,7 +14,7 @@ async function verificarLiper(userId: string): Promise<boolean> {
 
 const patchSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
-  desconto: z.number().positive("Desconto deve ser positivo"),
+  desconto: z.number().int().min(1, "Desconto deve ser positivo"),
   tipo: z.enum(["real", "percentual"]),
   validade: z.string().nullable().optional(),
   ativo: z.boolean(),

@@ -31,7 +31,7 @@ const FORM_VAZIO: FormState = {
 function formParaCupom(f: FormState) {
   return {
     nome: f.nome.trim(),
-    desconto: parseFloat(f.desconto) || 0,
+    desconto: parseInt(f.desconto) || 0,
     tipo: f.tipo,
     validade: f.validade || null,
     ativo: f.ativo,
@@ -40,7 +40,7 @@ function formParaCupom(f: FormState) {
 
 function formatDesconto(cupom: Cupom) {
   return cupom.tipo === "real"
-    ? `R$ ${cupom.desconto.toFixed(2)}`
+    ? `R$ ${cupom.desconto}`
     : `${cupom.desconto}%`;
 }
 
@@ -165,6 +165,7 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
           value={f.nome}
           onChange={(e) => onChange({ nome: e.target.value })}
           placeholder="Nome do cupom"
+          maxLength={12}
           className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </td>
@@ -172,7 +173,8 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
         <input
           type="number"
           min={0}
-          step="0.01"
+          step={1}
+          max={f.tipo === "percentual" ? 100 : 1000}
           value={f.desconto}
           onChange={(e) => onChange({ desconto: e.target.value })}
           placeholder="0"

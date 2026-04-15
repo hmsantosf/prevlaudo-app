@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Trash2, Plus, Check, X } from "lucide-react";
+import { useState, useRef } from "react";
+import { Pencil, Trash2, Plus, Minus, Check, X } from "lucide-react";
 
 type Cupom = {
   id: string;
@@ -22,7 +22,7 @@ type FormState = {
 
 const FORM_VAZIO: FormState = {
   nome: "",
-  desconto: "",
+  desconto: "0",
   tipo: "real",
   validade: "",
   ativo: true,
@@ -39,9 +39,7 @@ function formParaCupom(f: FormState) {
 }
 
 function formatDesconto(cupom: Cupom) {
-  return cupom.tipo === "real"
-    ? `R$ ${cupom.desconto}`
-    : `${cupom.desconto}%`;
+  return cupom.tipo === "real" ? `R$ ${cupom.desconto}` : `${cupom.desconto}%`;
 }
 
 function formatValidade(v: string | null) {
@@ -49,6 +47,129 @@ function formatValidade(v: string | null) {
   const [ano, mes, dia] = v.split("-");
   return `${dia}/${mes}/${ano}`;
 }
+
+// ── CamposForm definido FORA do componente pai para referência estável ──────
+// Definir dentro do corpo do componente cria uma nova referência a cada render,
+// causando desmontagem/remontagem do input a cada tecla (perde foco após 1-2 chars).
+
+interface CamposFormProps {
+  f: FormState;
+  onChange: (patch: Partial<FormState>) => void;
+}
+
+function CamposForm({ f, onChange }: CamposFormProps) {
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Ref para acessar o valor atual dentro do closure do setInterval
+  const descontoRef = useRef(parseInt(f.desconto) || 0);
+  descontoRef.current = parseInt(f.desconto) || 0;
+
+  const maxDesconto = f.tipo === "percentual" ? 100 : 1000;
+
+  const stopHold = () => {
+    if (intervalRef.current !== null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  const startHold = (delta: number) => {
+    const tick = () => {
+      const next = Math.min(maxDesconto, Math.max(0, descontoRef.current + delta));
+      descontoRef.current = next;
+      onChange({ desconto: String(next) });
+    };
+    tick(); // executa imediatamente no primeiro clique
+    intervalRef.current = setInterval(tick, 120);
+  };
+
+  return (
+    <>
+      {/* Nome */}
+      <td className="px-3 py-2">
+        <input
+          type="text"
+          value={f.nome}
+          onChange={(e) => onChange({ nome: e.target.value })}
+          placeholder="Nome do cupom"
+          maxLength={12}
+          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </td>
+
+      {/* Desconto com botões de hold */}
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onMouseDown={() => startHold(-1)}
+            onMouseUp={stopHold}
+            onMouseLeave={stopHold}
+            className="w-7 h-7 flex items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-100 select-none"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
+          <input
+            type="number"
+            min={0}
+            max={maxDesconto}
+            step={1}
+            value={f.desconto}
+            onChange={(e) => {
+              const v = Math.min(maxDesconto, Math.max(0, parseInt(e.target.value) || 0));
+              onChange({ desconto: String(v) });
+            }}
+            className="w-16 text-center border border-gray-300 rounded-lg px-1 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onMouseDown={() => startHold(1)}
+            onMouseUp={stopHold}
+            onMouseLeave={stopHold}
+            className="w-7 h-7 flex items-center justify-center rounded border border-gray-300 text-gray-600 hover:bg-gray-100 select-none"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+      </td>
+
+      {/* Tipo — ao mudar, zera o desconto */}
+      <td className="px-3 py-2">
+        <select
+          value={f.tipo}
+          onChange={(e) =>
+            onChange({ tipo: e.target.value as "real" | "percentual", desconto: "0" })
+          }
+          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="real">Real (R$)</option>
+          <option value="percentual">Percentual (%)</option>
+        </select>
+      </td>
+
+      {/* Validade */}
+      <td className="px-3 py-2">
+        <input
+          type="date"
+          value={f.validade}
+          onChange={(e) => onChange({ validade: e.target.value })}
+          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </td>
+
+      {/* Ativo */}
+      <td className="px-3 py-2 text-center">
+        <input
+          type="checkbox"
+          checked={f.ativo}
+          onChange={(e) => onChange({ ativo: e.target.checked })}
+          className="w-4 h-4 accent-blue-600"
+        />
+      </td>
+    </>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 
 export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom[] }) {
   const [cupons, setCupons] = useState<Cupom[]>(cuponsIniciais);
@@ -59,7 +180,7 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
 
-  // ── Edição inline ──────────────────────────────────────────────
+  // ── Edição inline ────────────────────────────────────────────────
 
   const abrirEdicao = (c: Cupom) => {
     setEditandoId(c.id);
@@ -87,20 +208,19 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formParaCupom(form)),
       });
+      const json = await res.json();
       if (!res.ok) {
-        const json = await res.json();
         setErro(json.error ?? "Erro ao salvar");
         return;
       }
-      const atualizado: Cupom = await res.json();
-      setCupons((prev) => prev.map((c) => (c.id === id ? atualizado : c)));
+      setCupons((prev) => prev.map((c) => (c.id === id ? (json as Cupom) : c)));
       setEditandoId(null);
     } finally {
       setSalvando(false);
     }
   };
 
-  // ── Novo cupom ─────────────────────────────────────────────────
+  // ── Novo cupom ───────────────────────────────────────────────────
 
   const abrirNovo = () => {
     setNovoForm(FORM_VAZIO);
@@ -122,20 +242,19 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formParaCupom(novoForm)),
       });
+      const json = await res.json();
       if (!res.ok) {
-        const json = await res.json();
         setErro(json.error ?? "Erro ao criar cupom");
         return;
       }
-      const criado: Cupom = await res.json();
-      setCupons((prev) => [criado, ...prev]);
+      setCupons((prev) => [json as Cupom, ...prev]);
       setNovoAberto(false);
     } finally {
       setSalvando(false);
     }
   };
 
-  // ── Exclusão ───────────────────────────────────────────────────
+  // ── Exclusão ─────────────────────────────────────────────────────
 
   const excluir = async (c: Cupom) => {
     if (!confirm(`Excluir o cupom "${c.nome}"? Esta ação não pode ser desfeita.`)) return;
@@ -149,65 +268,35 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
     setCupons((prev) => prev.filter((x) => x.id !== c.id));
   };
 
-  // ── Campos de formulário reutilizáveis ─────────────────────────
+  // ── Botões de ação das linhas de formulário ──────────────────────
 
-  const CamposForm = ({
-    f,
-    onChange,
+  const BotoesForm = ({
+    onSalvar,
+    onCancelar,
   }: {
-    f: FormState;
-    onChange: (patch: Partial<FormState>) => void;
+    onSalvar: () => void;
+    onCancelar: () => void;
   }) => (
-    <>
-      <td className="px-3 py-2">
-        <input
-          type="text"
-          value={f.nome}
-          onChange={(e) => onChange({ nome: e.target.value })}
-          placeholder="Nome do cupom"
-          maxLength={12}
-          className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </td>
-      <td className="px-3 py-2">
-        <input
-          type="number"
-          min={0}
-          step={1}
-          max={f.tipo === "percentual" ? 100 : 1000}
-          value={f.desconto}
-          onChange={(e) => onChange({ desconto: e.target.value })}
-          placeholder="0"
-          className="w-24 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </td>
-      <td className="px-3 py-2">
-        <select
-          value={f.tipo}
-          onChange={(e) => onChange({ tipo: e.target.value as "real" | "percentual" })}
-          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <td className="px-3 py-2">
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onSalvar}
+          disabled={salvando}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition disabled:opacity-50"
         >
-          <option value="real">Real (R$)</option>
-          <option value="percentual">Percentual (%)</option>
-        </select>
-      </td>
-      <td className="px-3 py-2">
-        <input
-          type="date"
-          value={f.validade}
-          onChange={(e) => onChange({ validade: e.target.value })}
-          className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </td>
-      <td className="px-3 py-2 text-center">
-        <input
-          type="checkbox"
-          checked={f.ativo}
-          onChange={(e) => onChange({ ativo: e.target.checked })}
-          className="w-4 h-4 accent-blue-600"
-        />
-      </td>
-    </>
+          <Check className="w-3.5 h-3.5" />
+          Salvar
+        </button>
+        <button
+          onClick={onCancelar}
+          disabled={salvando}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition disabled:opacity-50"
+        >
+          <X className="w-3.5 h-3.5" />
+          Cancelar
+        </button>
+      </div>
+    </td>
   );
 
   return (
@@ -241,34 +330,19 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {/* Linha de novo cupom */}
+
+            {/* Linha novo cupom */}
             {novoAberto && (
               <tr className="bg-blue-50">
-                <CamposForm f={novoForm} onChange={(p) => setNovoForm((v) => ({ ...v, ...p }))} />
-                <td className="px-3 py-2">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={salvarNovo}
-                      disabled={salvando}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition disabled:opacity-50"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      Salvar
-                    </button>
-                    <button
-                      onClick={cancelarNovo}
-                      disabled={salvando}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition disabled:opacity-50"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      Cancelar
-                    </button>
-                  </div>
-                </td>
+                <CamposForm
+                  f={novoForm}
+                  onChange={(p) => setNovoForm((v) => ({ ...v, ...p }))}
+                />
+                <BotoesForm onSalvar={salvarNovo} onCancelar={cancelarNovo} />
               </tr>
             )}
 
-            {/* Linhas existentes */}
+            {/* Estado vazio */}
             {cupons.length === 0 && !novoAberto && (
               <tr>
                 <td colSpan={6} className="px-5 py-10 text-center text-sm text-gray-400">
@@ -277,30 +351,15 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
               </tr>
             )}
 
+            {/* Linhas existentes */}
             {cupons.map((c) =>
               editandoId === c.id ? (
                 <tr key={c.id} className="bg-blue-50">
-                  <CamposForm f={form} onChange={(p) => setForm((v) => ({ ...v, ...p }))} />
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => salvarEdicao(c.id)}
-                        disabled={salvando}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition disabled:opacity-50"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        Salvar
-                      </button>
-                      <button
-                        onClick={cancelarEdicao}
-                        disabled={salvando}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition disabled:opacity-50"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        Cancelar
-                      </button>
-                    </div>
-                  </td>
+                  <CamposForm
+                    f={form}
+                    onChange={(p) => setForm((v) => ({ ...v, ...p }))}
+                  />
+                  <BotoesForm onSalvar={() => salvarEdicao(c.id)} onCancelar={cancelarEdicao} />
                 </tr>
               ) : (
                 <tr key={c.id} className="hover:bg-gray-50 transition-colors">

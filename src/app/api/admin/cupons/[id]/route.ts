@@ -39,21 +39,28 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const payload = {
+    nome: parsed.data.nome,
+    desconto: parsed.data.desconto,
+    tipo: parsed.data.tipo,
+    validade: parsed.data.validade ?? null,
+    ativo: parsed.data.ativo,
+  };
+  console.log("[cupons PATCH] id:", id, "payload:", JSON.stringify(payload));
+
   const { data, error } = await supabaseAdmin()
     .from("cupons")
-    .update({
-      nome: parsed.data.nome,
-      desconto: parsed.data.desconto,
-      tipo: parsed.data.tipo,
-      validade: parsed.data.validade ?? null,
-      ativo: parsed.data.ativo,
-    })
+    .update(payload)
     .eq("id", id)
     .select("id, nome, desconto, tipo, validade, ativo")
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao atualizar cupom" }, { status: 500 });
+    console.error("[cupons PATCH] erro Supabase:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    return NextResponse.json(
+      { error: "Erro ao atualizar cupom", detail: error.message, code: error.code, hint: error.hint },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json(data);

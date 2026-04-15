@@ -56,20 +56,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
+  const payload = {
+    nome: parsed.data.nome,
+    desconto: parsed.data.desconto,
+    tipo: parsed.data.tipo,
+    validade: parsed.data.validade ?? null,
+    ativo: parsed.data.ativo,
+  };
+  console.log("[cupons POST] payload enviado ao Supabase:", JSON.stringify(payload));
+
   const { data, error } = await supabaseAdmin()
     .from("cupons")
-    .insert({
-      nome: parsed.data.nome,
-      desconto: parsed.data.desconto,
-      tipo: parsed.data.tipo,
-      validade: parsed.data.validade ?? null,
-      ativo: parsed.data.ativo,
-    })
+    .insert(payload)
     .select("id, nome, desconto, tipo, validade, ativo")
     .single();
 
   if (error) {
-    return NextResponse.json({ error: "Erro ao criar cupom" }, { status: 500 });
+    console.error("[cupons POST] erro Supabase:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    return NextResponse.json(
+      { error: "Erro ao criar cupom", detail: error.message, code: error.code, hint: error.hint },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json(data, { status: 201 });

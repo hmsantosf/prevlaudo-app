@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Clock, CheckCircle, Users, ChevronRight, UserPlus, FolderOpen, Coins } from "lucide-react";
 
@@ -22,13 +24,22 @@ export default function Dashboard({ userName, clientesRecentes, creditos, totalC
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Olá, {firstName}!
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Gerencie seus clientes e processos de revisão previdenciária
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Olá, {firstName}!
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Gerencie seus clientes e processos de revisão previdenciária
+          </p>
+        </div>
+        <button
+          onClick={() => alert("Em breve!")}
+          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+        >
+          <Coins className="w-4 h-4" />
+          Comprar créditos
+        </button>
       </div>
 
       {/* Cards de resumo */}

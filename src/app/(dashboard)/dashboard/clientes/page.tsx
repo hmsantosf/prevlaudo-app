@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { Users, Clock, CheckCircle2, XCircle, Search, Plus, FolderOpen } from "lucide-react";
+import ExcluirClienteButton from "@/components/clientes/ExcluirClienteButton";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -50,8 +51,6 @@ type ClienteRow = {
   id: string;
   name: string;
   cpf: string | null;
-  data_relatorio: string | null;
-  indenizacao_atualizada: string | null;
   processos: { status: string; created_at: string }[];
 };
 
@@ -60,13 +59,12 @@ export default async function ClientesPage() {
 
   const { data } = await supabaseAdmin()
     .from("clientes")
-    .select("id, name, cpf, data_relatorio, indenizacao_atualizada, processos(status, created_at)")
+    .select("id, name, cpf, processos(status, created_at)")
     .eq("user_id", session!.user!.id)
     .order("created_at", { ascending: false });
 
   const clientes = (data ?? []) as ClienteRow[];
 
-  // Cada cliente pode ter múltiplos processos — exibe o mais recente
   const linhas = clientes.map((c) => {
     const ultimo = c.processos?.sort(
       (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -91,7 +89,7 @@ export default async function ClientesPage() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
         >
           <Plus className="w-4 h-4" />
-          Novo processo
+          Novo cliente
         </Link>
       </div>
 
@@ -108,7 +106,7 @@ export default async function ClientesPage() {
             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             <Plus className="w-4 h-4" />
-            Novo processo
+            Novo cliente
           </Link>
         </div>
       ) : (
@@ -123,12 +121,6 @@ export default async function ClientesPage() {
                   CPF
                 </th>
                 <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">
-                  Data do Relatório
-                </th>
-                <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">
-                  Indenização Atualizada
-                </th>
-                <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">
                   Status
                 </th>
                 <th className="px-5 py-3"></th>
@@ -141,23 +133,20 @@ export default async function ClientesPage() {
                   <td className="px-5 py-4 text-gray-600 tabular-nums">
                     {c.cpf ?? "—"}
                   </td>
-                  <td className="px-5 py-4 text-gray-600 tabular-nums">
-                    {c.data_relatorio ?? "—"}
-                  </td>
-                  <td className="px-5 py-4 text-gray-700 tabular-nums">
-                    {c.indenizacao_atualizada ?? "—"}
-                  </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={c.statusProcesso} />
                   </td>
                   <td className="px-5 py-4">
-                    <Link
-                      href={`/dashboard/clientes/${c.id}/processos`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
-                    >
-                      <FolderOpen className="w-3.5 h-3.5" />
-                      Processos
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/clientes/${c.id}/processos`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        Processos
+                      </Link>
+                      <ExcluirClienteButton clienteId={c.id} clienteNome={c.name} />
+                    </div>
                   </td>
                 </tr>
               ))}

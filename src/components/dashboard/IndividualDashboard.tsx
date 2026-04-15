@@ -13,9 +13,10 @@ interface Props {
   userName: string;
   clientesRecentes: ClienteRecente[];
   creditos: number;
+  totalClientes: number;
 }
 
-export default function Dashboard({ userName, clientesRecentes, creditos }: Props) {
+export default function Dashboard({ userName, clientesRecentes, creditos, totalClientes }: Props) {
   const firstName = userName.split(" ")[0];
 
   return (
@@ -37,7 +38,7 @@ export default function Dashboard({ userName, clientesRecentes, creditos }: Prop
             <Users className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">0</p>
+            <p className="text-2xl font-bold text-gray-900">{totalClientes}</p>
             <p className="text-sm text-gray-500">Clientes</p>
           </div>
         </div>

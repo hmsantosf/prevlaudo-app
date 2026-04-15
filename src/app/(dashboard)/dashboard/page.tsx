@@ -13,13 +13,17 @@ export default async function DashboardPage() {
   const userId = session!.user!.id;
   const admin = supabaseAdmin();
 
-  const [{ data: clientesData }, { data: profileData }] = await Promise.all([
+  const [{ data: clientesData }, { count: totalClientes }, { data: profileData }] = await Promise.all([
     admin
       .from("clientes")
       .select("id, name, cpf, data_relatorio, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(5),
+    admin
+      .from("clientes")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId),
     admin
       .from("profiles")
       .select("creditos")
@@ -37,5 +41,5 @@ export default async function DashboardPage() {
 
   const creditos = (profileData as { creditos: number } | null)?.creditos ?? 0;
 
-  return <Dashboard userName={userName} clientesRecentes={clientes} creditos={creditos} />;
+  return <Dashboard userName={userName} clientesRecentes={clientes} creditos={creditos} totalClientes={totalClientes ?? 0} />;
 }

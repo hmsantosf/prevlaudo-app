@@ -168,7 +168,7 @@ export default async function CalcularPage({
   const { data: processo } = await supabaseAdmin()
     .from("processos")
     .select(
-      `id, tipo, status,
+      `id, tipo, status, cliente_id,
        clientes(
          name, cpf, data_nascimento, data_concessao, sexo,
          nome_beneficiario, data_nasc_beneficiario,
@@ -302,7 +302,7 @@ export default async function CalcularPage({
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link
-          href="/dashboard/processos"
+          href={p.cliente_id ? `/dashboard/clientes/${p.cliente_id}/processos` : "/dashboard/clientes"}
           className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition"
         >
           <ChevronLeft className="w-4 h-4" />

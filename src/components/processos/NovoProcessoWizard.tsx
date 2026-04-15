@@ -15,7 +15,11 @@ const etapas = [
   { numero: 2, label: "Confirmar dados" },
 ];
 
-export default function NovoProcessoWizard() {
+interface Props {
+  returnTo?: string;
+}
+
+export default function NovoProcessoWizard({ returnTo }: Props) {
   const router = useRouter();
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [dados, setDados] = useState<DadosAerus | null>(null);
@@ -67,7 +71,7 @@ export default function NovoProcessoWizard() {
       return;
     }
 
-    router.push("/dashboard/processos");
+    router.push(returnTo ?? "/dashboard/clientes");
     router.refresh();
   };
 
@@ -115,7 +119,7 @@ export default function NovoProcessoWizard() {
               <p className="text-sm font-medium text-red-700">{erroGlobal}</p>
               {isDuplicata && (
                 <Link
-                  href="/dashboard/processos"
+                  href={returnTo ?? "/dashboard/clientes"}
                   className="mt-1 inline-block text-xs text-red-600 underline underline-offset-2 hover:text-red-800"
                 >
                   Ver lista de processos

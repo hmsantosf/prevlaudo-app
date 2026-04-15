@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
-  FileText,
   Users,
   CreditCard,
   Settings,
@@ -21,7 +20,6 @@ interface Props {
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/clientes", label: "Clientes", icon: Users },
-  { href: "/dashboard/processos", label: "Processos", icon: FileText },
   { href: "/dashboard/planos", label: "Planos", icon: CreditCard },
   { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
 ];

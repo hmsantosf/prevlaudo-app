@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
-import { Users, Clock, CheckCircle2, XCircle, Search, Plus } from "lucide-react";
+import { Users, Clock, CheckCircle2, XCircle, Search, Plus, FolderOpen } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -131,6 +131,7 @@ export default async function ClientesPage() {
                 <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">
                   Status
                 </th>
+                <th className="px-5 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -148,6 +149,15 @@ export default async function ClientesPage() {
                   </td>
                   <td className="px-5 py-4">
                     <StatusBadge status={c.statusProcesso} />
+                  </td>
+                  <td className="px-5 py-4">
+                    <Link
+                      href={`/dashboard/clientes/${c.id}/processos`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
+                    >
+                      <FolderOpen className="w-3.5 h-3.5" />
+                      Processos
+                    </Link>
                   </td>
                 </tr>
               ))}

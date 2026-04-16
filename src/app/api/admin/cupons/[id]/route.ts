@@ -15,7 +15,7 @@ async function verificarLiper(userId: string): Promise<boolean> {
 const patchSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   desconto: z.number().int().min(1, "Desconto deve ser positivo"),
-  tipo: z.enum(["real", "percentual"]),
+  tipo_desconto: z.enum(["real", "percentual"]),
   validade: z.string().nullable().optional(),
   ativo: z.boolean(),
 });
@@ -42,7 +42,7 @@ export async function PATCH(
   const payload = {
     nome: parsed.data.nome,
     desconto: parsed.data.desconto,
-    tipo: parsed.data.tipo,
+    tipo_desconto: parsed.data.tipo_desconto,
     validade: parsed.data.validade ?? null,
     ativo: parsed.data.ativo,
   };
@@ -52,7 +52,7 @@ export async function PATCH(
     .from("cupons")
     .update(payload)
     .eq("id", id)
-    .select("id, nome, desconto, tipo, validade, ativo")
+    .select("id, nome, desconto, tipo_desconto, validade, ativo")
     .single();
 
   if (error) {

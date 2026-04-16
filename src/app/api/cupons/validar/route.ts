@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   const { data: cupom } = await supabaseAdmin()
     .from("cupons")
-    .select("id, nome, desconto, tipo, validade, ativo")
+    .select("id, nome, desconto, tipo_desconto, validade, ativo")
     .eq("nome", codigo.trim().toUpperCase())
     .eq("ativo", true)
     .maybeSingle();
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     id: cupom.id,
     nome: cupom.nome,
     desconto: cupom.desconto,
-    tipo: cupom.tipo,
+    tipo_desconto: cupom.tipo_desconto,
     validade: cupom.validade,
   });
 }

@@ -46,3 +46,4 @@ export async function POST(request: NextRequest) {
     tipo_desconto: cupom.tipo_desconto,
     data_validade: cupom.data_validade,
   });
+}

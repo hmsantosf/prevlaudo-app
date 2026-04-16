@@ -9,18 +9,27 @@ export async function POST(request: NextRequest) {
   }
 
   const { codigo } = await request.json();
+  console.log("[validar] codigo recebido:", JSON.stringify(codigo));
+
   if (!codigo?.trim()) {
     return NextResponse.json({ error: "Código do cupom é obrigatório" }, { status: 400 });
   }
 
-  const hoje = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const codigoFinal = codigo.trim().toUpperCase();
+  console.log("[validar] codigoFinal:", codigoFinal);
 
-  const { data: cupom } = await supabaseAdmin()
+  const hoje = new Date().toISOString().split("T")[0];
+  console.log("[validar] hoje:", hoje);
+
+  const { data: cupom, error } = await supabaseAdmin()
     .from("cupons")
     .select("id, nome, desconto, tipo_desconto, data_validade, ativo")
-    .eq("nome", codigo.trim().toUpperCase())
+    .eq("nome", codigoFinal)
     .eq("ativo", true)
     .maybeSingle();
+
+  console.log("[validar] cupom:", JSON.stringify(cupom));
+  console.log("[validar] error:", JSON.stringify(error));
 
   if (!cupom) {
     return NextResponse.json({ error: "Cupom inválido ou inativo" }, { status: 404 });
@@ -37,4 +46,3 @@ export async function POST(request: NextRequest) {
     tipo_desconto: cupom.tipo_desconto,
     data_validade: cupom.data_validade,
   });
-}

@@ -22,7 +22,7 @@ type Cupom = {
   nome: string;
   desconto: number;
   tipo_desconto: "real" | "percentual";
-  validade: string | null;
+  data_validade: string | null;
   ativo: boolean;
 };
 
@@ -50,7 +50,7 @@ export default async function ConfiguracoesPage() {
         .order("name", { ascending: true }),
       admin
         .from("cupons")
-        .select("id, nome, desconto, tipo_desconto, validade, ativo")
+        .select("id, nome, desconto, tipo_desconto, data_validade, ativo")
         .order("created_at", { ascending: false }),
     ]);
     usuarios = (profilesData ?? []) as Profile[];

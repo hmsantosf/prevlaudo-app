@@ -8,7 +8,7 @@ type Cupom = {
   nome: string;
   desconto: number;
   tipo_desconto: "real" | "percentual";
-  validade: string | null;
+  data_validade: string | null;
   ativo: boolean;
 };
 
@@ -16,7 +16,7 @@ type FormState = {
   nome: string;
   desconto: string;
   tipo_desconto: "real" | "percentual";
-  validade: string;
+  data_validade: string;
   ativo: boolean;
 };
 
@@ -24,7 +24,7 @@ const FORM_VAZIO: FormState = {
   nome: "",
   desconto: "0",
   tipo_desconto: "real",
-  validade: "",
+  data_validade: "",
   ativo: true,
 };
 
@@ -33,7 +33,7 @@ function formParaCupom(f: FormState) {
     nome: f.nome.trim(),
     desconto: parseInt(f.desconto) || 0,
     tipo_desconto: f.tipo_desconto,
-    validade: f.validade || null,
+    data_validade: f.data_validade || null,
     ativo: f.ativo,
   };
 }
@@ -150,8 +150,8 @@ function CamposForm({ f, onChange }: CamposFormProps) {
       <td className="px-3 py-2">
         <input
           type="date"
-          value={f.validade}
-          onChange={(e) => onChange({ validade: e.target.value })}
+          value={f.data_validade}
+          onChange={(e) => onChange({ data_validade: e.target.value })}
           className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </td>
@@ -188,7 +188,7 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
       nome: c.nome,
       desconto: String(c.desconto),
       tipo_desconto: c.tipo_desconto,
-      validade: c.validade ?? "",
+      data_validade: c.data_validade ?? "",
       ativo: c.ativo,
     });
     setErro("");
@@ -368,7 +368,7 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
                   <td className="px-5 py-4 text-gray-600">
                     {c.tipo_desconto === "real" ? "Real (R$)" : "Percentual (%)"}
                   </td>
-                  <td className="px-5 py-4 text-gray-600 tabular-nums">{formatValidade(c.validade)}</td>
+                  <td className="px-5 py-4 text-gray-600 tabular-nums">{formatValidade(c.data_validade)}</td>
                   <td className="px-5 py-4 text-center">
                     <span
                       className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${

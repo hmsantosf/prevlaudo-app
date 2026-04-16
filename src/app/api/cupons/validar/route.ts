@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
   const { data: cupom } = await supabaseAdmin()
     .from("cupons")
-    .select("id, nome, desconto, tipo_desconto, validade, ativo")
+    .select("id, nome, desconto, tipo_desconto, data_validade, ativo")
     .eq("nome", codigo.trim().toUpperCase())
     .eq("ativo", true)
     .maybeSingle();
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Cupom inválido ou inativo" }, { status: 404 });
   }
 
-  if (cupom.validade && cupom.validade < hoje) {
+  if (cupom.data_validade && cupom.data_validade < hoje) {
     return NextResponse.json({ error: "Cupom expirado" }, { status: 410 });
   }
 
@@ -35,6 +35,6 @@ export async function POST(request: NextRequest) {
     nome: cupom.nome,
     desconto: cupom.desconto,
     tipo_desconto: cupom.tipo_desconto,
-    validade: cupom.validade,
+    data_validade: cupom.data_validade,
   });
 }

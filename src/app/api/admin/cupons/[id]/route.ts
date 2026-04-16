@@ -16,7 +16,7 @@ const patchSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   desconto: z.number().int().min(1, "Desconto deve ser positivo"),
   tipo_desconto: z.enum(["real", "percentual"]),
-  validade: z.string().nullable().optional(),
+  data_validade: z.string().nullable().optional(),
   ativo: z.boolean(),
 });
 
@@ -43,7 +43,7 @@ export async function PATCH(
     nome: parsed.data.nome,
     desconto: parsed.data.desconto,
     tipo_desconto: parsed.data.tipo_desconto,
-    validade: parsed.data.validade ?? null,
+    data_validade: parsed.data.data_validade ?? null,
     ativo: parsed.data.ativo,
   };
   console.log("[cupons PATCH] id:", id, "payload:", JSON.stringify(payload));
@@ -52,7 +52,7 @@ export async function PATCH(
     .from("cupons")
     .update(payload)
     .eq("id", id)
-    .select("id, nome, desconto, tipo_desconto, validade, ativo")
+    .select("id, nome, desconto, tipo_desconto, data_validade, ativo")
     .single();
 
   if (error) {

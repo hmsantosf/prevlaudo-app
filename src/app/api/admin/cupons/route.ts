@@ -23,7 +23,7 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin()
     .from("cupons")
-    .select("id, nome, desconto, tipo_desconto, validade, ativo")
+    .select("id, nome, desconto, tipo_desconto, data_validade, ativo")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -37,7 +37,7 @@ const postSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   desconto: z.number().int().min(1, "Desconto deve ser positivo"),
   tipo_desconto: z.enum(["real", "percentual"]),
-  validade: z.string().nullable().optional(),
+  data_validade: z.string().nullable().optional(),
   ativo: z.boolean().default(true),
 });
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     nome: parsed.data.nome,
     desconto: parsed.data.desconto,
     tipo_desconto: parsed.data.tipo_desconto,
-    validade: parsed.data.validade ?? null,
+    data_validade: parsed.data.data_validade ?? null,
     ativo: parsed.data.ativo,
   };
   console.log("[cupons POST] payload enviado ao Supabase:", JSON.stringify(payload));
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabaseAdmin()
     .from("cupons")
     .insert(payload)
-    .select("id, nome, desconto, tipo_desconto, validade, ativo")
+    .select("id, nome, desconto, tipo_desconto, data_validade, ativo")
     .single();
 
   if (error) {

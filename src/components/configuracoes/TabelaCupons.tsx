@@ -7,7 +7,7 @@ type Cupom = {
   id: string;
   nome: string;
   desconto: number;
-  tipo: "real" | "percentual";
+  tipo_desconto: "real" | "percentual";
   validade: string | null;
   ativo: boolean;
 };
@@ -15,7 +15,7 @@ type Cupom = {
 type FormState = {
   nome: string;
   desconto: string;
-  tipo: "real" | "percentual";
+  tipo_desconto: "real" | "percentual";
   validade: string;
   ativo: boolean;
 };
@@ -23,7 +23,7 @@ type FormState = {
 const FORM_VAZIO: FormState = {
   nome: "",
   desconto: "0",
-  tipo: "real",
+  tipo_desconto: "real",
   validade: "",
   ativo: true,
 };
@@ -32,14 +32,14 @@ function formParaCupom(f: FormState) {
   return {
     nome: f.nome.trim(),
     desconto: parseInt(f.desconto) || 0,
-    tipo: f.tipo,
+    tipo_desconto: f.tipo_desconto,
     validade: f.validade || null,
     ativo: f.ativo,
   };
 }
 
 function formatDesconto(cupom: Cupom) {
-  return cupom.tipo === "real" ? `R$ ${cupom.desconto}` : `${cupom.desconto}%`;
+  return cupom.tipo_desconto === "real" ? `R$ ${cupom.desconto}` : `${cupom.desconto}%`;
 }
 
 function formatValidade(v: string | null) {
@@ -63,7 +63,7 @@ function CamposForm({ f, onChange }: CamposFormProps) {
   const descontoRef = useRef(parseInt(f.desconto) || 0);
   descontoRef.current = parseInt(f.desconto) || 0;
 
-  const maxDesconto = f.tipo === "percentual" ? 100 : 1000;
+  const maxDesconto = f.tipo_desconto === "percentual" ? 100 : 1000;
 
   const stopHold = () => {
     if (intervalRef.current !== null) {
@@ -135,9 +135,9 @@ function CamposForm({ f, onChange }: CamposFormProps) {
       {/* Tipo — ao mudar, zera o desconto */}
       <td className="px-3 py-2">
         <select
-          value={f.tipo}
+          value={f.tipo_desconto}
           onChange={(e) =>
-            onChange({ tipo: e.target.value as "real" | "percentual", desconto: "0" })
+            onChange({ tipo_desconto: e.target.value as "real" | "percentual", desconto: "0" })
           }
           className="border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
@@ -187,7 +187,7 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
     setForm({
       nome: c.nome,
       desconto: String(c.desconto),
-      tipo: c.tipo,
+      tipo_desconto: c.tipo_desconto,
       validade: c.validade ?? "",
       ativo: c.ativo,
     });
@@ -366,7 +366,7 @@ export default function TabelaCupons({ cuponsIniciais }: { cuponsIniciais: Cupom
                   <td className="px-5 py-4 font-medium text-gray-900">{c.nome}</td>
                   <td className="px-5 py-4 text-gray-700 tabular-nums">{formatDesconto(c)}</td>
                   <td className="px-5 py-4 text-gray-600">
-                    {c.tipo === "real" ? "Real (R$)" : "Percentual (%)"}
+                    {c.tipo_desconto === "real" ? "Real (R$)" : "Percentual (%)"}
                   </td>
                   <td className="px-5 py-4 text-gray-600 tabular-nums">{formatValidade(c.validade)}</td>
                   <td className="px-5 py-4 text-center">

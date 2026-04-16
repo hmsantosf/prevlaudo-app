@@ -5,6 +5,8 @@ import TabelaCupons from "@/components/configuracoes/TabelaCupons";
 import { Settings, Users, Ticket } from "lucide-react";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Configurações | PrevLaudo",
 };

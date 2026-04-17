@@ -165,8 +165,7 @@ export async function criarCobrancaCartao(params: {
       creditCardHolderInfo: params.creditCardHolderInfo,
       remoteIp: params.remoteIp,
       split: [
-        { walletId: "bf7126a7-107f-4dcc-b1ac-9de95641bced", percentualValue: 67 },
-        { walletId: "be584c53-2a78-4d7a-bc57-9d985bb383cc", percentualValue: 33 },
+        { walletId: "7a2dfcb8-0177-4176-a9f9-ae2666d36949", percentualValue: 67 },
       ],
     }),
   });

@@ -2,19 +2,23 @@
 
 import { useCallback, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { ChevronLeft, ChevronRight, Columns, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
+import "react-pdf/dist/Page/TextLayer.css";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 interface Props {
   file: string;
+  termoBusca?: string;
 }
 
-export default function PdfViewer({ file }: Props) {
+const escHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+export default function PdfViewer({ file, termoBusca }: Props) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.2);
-  const [thumbsVisible, setThumbsVisible] = useState(true);
 
   const onLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -27,6 +31,20 @@ export default function PdfViewer({ file }: Props) {
   const zoomIn = () => setScale((s) => Math.min(3, +(s + 0.25).toFixed(2)));
   const zoomOut = () => setScale((s) => Math.max(0.25, +(s - 0.25).toFixed(2)));
 
+  const customTextRenderer = useCallback(
+    ({ str }: { str: string }) => {
+      if (!termoBusca || !str.toLowerCase().includes(termoBusca.toLowerCase())) {
+        return escHtml(str);
+      }
+      const idx = str.toLowerCase().indexOf(termoBusca.toLowerCase());
+      const before = escHtml(str.slice(0, idx));
+      const match = escHtml(str.slice(idx, idx + termoBusca.length));
+      const after = escHtml(str.slice(idx + termoBusca.length));
+      return `${before}<mark style="background: yellow; opacity: 0.5">${match}</mark>${after}`;
+    },
+    [termoBusca],
+  );
+
   return (
     <div className="flex flex-col h-full" style={{ background: "#2b2b2b" }}>
       {/* ── Toolbar ─────────────────────────────────────────────────── */}
@@ -34,17 +52,6 @@ export default function PdfViewer({ file }: Props) {
         className="flex items-center gap-1 px-3 py-1.5 flex-shrink-0 select-none border-b"
         style={{ background: "#1a1a1a", borderColor: "#333" }}
       >
-        {/* Toggle thumbnails */}
-        <button
-          onClick={() => setThumbsVisible((v) => !v)}
-          title={thumbsVisible ? "Ocultar miniaturas" : "Mostrar miniaturas"}
-          className="flex items-center justify-center w-7 h-7 rounded hover:bg-white/10 text-white/60 hover:text-white transition"
-        >
-          <Columns className="w-4 h-4" />
-        </button>
-
-        <div className="w-px h-4 bg-white/15 mx-1" />
-
         {/* Navigation */}
         <button
           onClick={() => goTo(currentPage - 1)}
@@ -110,43 +117,13 @@ export default function PdfViewer({ file }: Props) {
           </div>
         }
       >
-        {/* Painel de miniaturas */}
-        {thumbsVisible && numPages > 0 && (
-          <div
-            className="flex-shrink-0 overflow-y-auto flex flex-col gap-2 py-3 px-1.5"
-            style={{ width: 104, background: "#1a1a1a", borderRight: "1px solid #333" }}
-          >
-            {Array.from({ length: numPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`flex flex-col items-center gap-1 rounded p-1 transition ${
-                  page === currentPage
-                    ? "ring-2 ring-blue-400 bg-blue-900/20"
-                    : "hover:bg-white/10"
-                }`}
-              >
-                <Page
-                  pageNumber={page}
-                  width={82}
-                  renderAnnotationLayer={false}
-                  renderTextLayer={false}
-                />
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.4)" }}>
-                  {page}
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Área principal */}
         <div className="flex-1 overflow-auto flex justify-center py-4 px-2">
           <Page
             pageNumber={currentPage}
             scale={scale}
             renderAnnotationLayer={false}
-            renderTextLayer={false}
+            renderTextLayer
+            customTextRenderer={customTextRenderer}
           />
         </div>
       </Document>

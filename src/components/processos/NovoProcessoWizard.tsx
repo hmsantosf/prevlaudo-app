@@ -66,6 +66,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
   // PDF state
   const [arquivoPdf, setArquivoPdf] = useState<File | null>(null);
   const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
+  const [termoBusca, setTermoBusca] = useState("");
 
   // Split panel state
   const [leftPct, setLeftPct] = useState(45);
@@ -196,7 +197,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               className="flex-shrink-0 overflow-hidden"
             >
               {pdfObjectUrl ? (
-                <PdfViewer file={pdfObjectUrl} />
+                <PdfViewer file={pdfObjectUrl} termoBusca={termoBusca} />
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-400 text-sm" style={{ background: "#2b2b2b" }}>
                   Carregando PDF…
@@ -235,6 +236,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               dados={dados}
               onVoltar={() => setEtapa(1)}
               onSalvar={salvar}
+              onCampoFoco={(valor) => setTermoBusca(valor)}
             />
           </div>
         </div>

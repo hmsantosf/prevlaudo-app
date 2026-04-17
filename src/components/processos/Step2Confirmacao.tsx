@@ -39,6 +39,7 @@ interface Props {
   dados: DadosAerus;
   onVoltar: () => void;
   onSalvar: (dados: FormData) => Promise<void>;
+  onCampoFoco?: (valor: string) => void;
 }
 
 interface CampoProps {
@@ -48,9 +49,10 @@ interface CampoProps {
   erro?: string;
   destaque?: boolean;
   colSpan?: 1 | 2 | 3;
+  onCampoFoco?: (valor: string) => void;
 }
 
-function Campo({ label, name, register, erro, destaque, colSpan }: CampoProps) {
+function Campo({ label, name, register, erro, destaque, colSpan, onCampoFoco }: CampoProps) {
   const span =
     colSpan === 2 ? "sm:col-span-2" :
     colSpan === 3 ? "sm:col-span-2 lg:col-span-3" : "";
@@ -62,6 +64,7 @@ function Campo({ label, name, register, erro, destaque, colSpan }: CampoProps) {
       </label>
       <input
         {...register(name)}
+        onFocus={(e) => onCampoFoco?.(e.target.value)}
         className={[
           "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition",
           destaque ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-white",
@@ -86,7 +89,7 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
   );
 }
 
-export default function Step2Confirmacao({ dados, onVoltar, onSalvar }: Props) {
+export default function Step2Confirmacao({ dados, onVoltar, onSalvar, onCampoFoco }: Props) {
   const camposVazios = Object.values(dados).filter((v) => !v).length;
 
   const {
@@ -123,38 +126,38 @@ export default function Step2Confirmacao({ dados, onVoltar, onSalvar }: Props) {
 
       {/* ── Credor ──────────────────────────────────────────── */}
       <Secao titulo="Dados do Credor">
-        <Campo colSpan={2} label="Nome do Credor"     name="nomeCredor"           register={register} erro={errors.nomeCredor?.message} destaque={!dados.nomeCredor} />
-        <Campo             label="CPF"                name="cpfCredor"            register={register} destaque={!dados.cpfCredor} />
-        <Campo             label="Data de Nascimento" name="dataNascimentoCredor" register={register} destaque={!dados.dataNascimentoCredor} />
-        <Campo             label="Matrícula AERUS"    name="matriculaAerus"       register={register} destaque={!dados.matriculaAerus} />
-        <Campo             label="Matrícula Funcional"name="matriculaFuncional"   register={register} destaque={!dados.matriculaFuncional} />
-        <Campo             label="Sexo"               name="sexoCredor"           register={register} destaque={!dados.sexoCredor} />
+        <Campo colSpan={2} label="Nome do Credor"     name="nomeCredor"           register={register} erro={errors.nomeCredor?.message} destaque={!dados.nomeCredor} onCampoFoco={onCampoFoco} />
+        <Campo             label="CPF"                name="cpfCredor"            register={register} destaque={!dados.cpfCredor} onCampoFoco={onCampoFoco} />
+        <Campo             label="Data de Nascimento" name="dataNascimentoCredor" register={register} destaque={!dados.dataNascimentoCredor} onCampoFoco={onCampoFoco} />
+        <Campo             label="Matrícula AERUS"    name="matriculaAerus"       register={register} destaque={!dados.matriculaAerus} onCampoFoco={onCampoFoco} />
+        <Campo             label="Matrícula Funcional"name="matriculaFuncional"   register={register} destaque={!dados.matriculaFuncional} onCampoFoco={onCampoFoco} />
+        <Campo             label="Sexo"               name="sexoCredor"           register={register} destaque={!dados.sexoCredor} onCampoFoco={onCampoFoco} />
       </Secao>
 
       {/* ── Benefício ───────────────────────────────────────── */}
       <Secao titulo="Dados do Benefício">
-        <Campo             label="Data de Concessão" name="dataConcessao"  register={register} destaque={!dados.dataConcessao} />
-        <Campo             label="Data do Relatório" name="dataRelatorio"  register={register} destaque={!dados.dataRelatorio} />
-        <Campo colSpan={2} label="Tipo de Benefício" name="tipoBeneficio"  register={register} destaque={!dados.tipoBeneficio} />
-        <Campo colSpan={2} label="Tipo de Renda"     name="tipoRenda"      register={register} destaque={!dados.tipoRenda} />
+        <Campo             label="Data de Concessão" name="dataConcessao"  register={register} destaque={!dados.dataConcessao} onCampoFoco={onCampoFoco} />
+        <Campo             label="Data do Relatório" name="dataRelatorio"  register={register} destaque={!dados.dataRelatorio} onCampoFoco={onCampoFoco} />
+        <Campo colSpan={2} label="Tipo de Benefício" name="tipoBeneficio"  register={register} destaque={!dados.tipoBeneficio} onCampoFoco={onCampoFoco} />
+        <Campo colSpan={2} label="Tipo de Renda"     name="tipoRenda"      register={register} destaque={!dados.tipoRenda} onCampoFoco={onCampoFoco} />
       </Secao>
 
       {/* ── Valores ─────────────────────────────────────────── */}
       <Secao titulo="Valores Financeiros">
-        <Campo label="Valor da Cota"              name="valorCota"              register={register} destaque={!dados.valorCota} />
-        <Campo label="Montante p/ Concessão"      name="montanteConcessao"      register={register} destaque={!dados.montanteConcessao} />
-        <Campo label="Anuidade p/ Concessão"      name="anuidadeConcessao"      register={register} destaque={!dados.anuidadeConcessao} />
-        <Campo label="Indenização na Concessão"   name="indenizacaoConcessao"   register={register} destaque={!dados.indenizacaoConcessao} />
-        <Campo label="Índice de Correção"         name="indiceCorrecao"         register={register} destaque={!dados.indiceCorrecao} />
-        <Campo label="Indenização Atualizada"     name="indenizacaoAtualizada"  register={register} destaque={!dados.indenizacaoAtualizada} />
-        <Campo label="% Continuação"              name="percentualContinuacao"  register={register} destaque={!dados.percentualContinuacao} />
+        <Campo label="Valor da Cota"              name="valorCota"              register={register} destaque={!dados.valorCota} onCampoFoco={onCampoFoco} />
+        <Campo label="Montante p/ Concessão"      name="montanteConcessao"      register={register} destaque={!dados.montanteConcessao} onCampoFoco={onCampoFoco} />
+        <Campo label="Anuidade p/ Concessão"      name="anuidadeConcessao"      register={register} destaque={!dados.anuidadeConcessao} onCampoFoco={onCampoFoco} />
+        <Campo label="Indenização na Concessão"   name="indenizacaoConcessao"   register={register} destaque={!dados.indenizacaoConcessao} onCampoFoco={onCampoFoco} />
+        <Campo label="Índice de Correção"         name="indiceCorrecao"         register={register} destaque={!dados.indiceCorrecao} onCampoFoco={onCampoFoco} />
+        <Campo label="Indenização Atualizada"     name="indenizacaoAtualizada"  register={register} destaque={!dados.indenizacaoAtualizada} onCampoFoco={onCampoFoco} />
+        <Campo label="% Continuação"              name="percentualContinuacao"  register={register} destaque={!dados.percentualContinuacao} onCampoFoco={onCampoFoco} />
       </Secao>
 
       {/* ── Beneficiário ────────────────────────────────────── */}
       <Secao titulo="Dados do Beneficiário">
-        <Campo colSpan={2} label="Nome do Beneficiário"    name="nomeBeneficiario"     register={register} destaque={!dados.nomeBeneficiario} />
-        <Campo             label="CPF do Beneficiário"     name="cpfBeneficiario"      register={register} destaque={!dados.cpfBeneficiario} />
-        <Campo             label="Data de Nascimento"      name="dataNascBeneficiario" register={register} destaque={!dados.dataNascBeneficiario} />
+        <Campo colSpan={2} label="Nome do Beneficiário"    name="nomeBeneficiario"     register={register} destaque={!dados.nomeBeneficiario} onCampoFoco={onCampoFoco} />
+        <Campo             label="CPF do Beneficiário"     name="cpfBeneficiario"      register={register} destaque={!dados.cpfBeneficiario} onCampoFoco={onCampoFoco} />
+        <Campo             label="Data de Nascimento"      name="dataNascBeneficiario" register={register} destaque={!dados.dataNascBeneficiario} onCampoFoco={onCampoFoco} />
       </Secao>
 
       {/* ── Ações ───────────────────────────────────────────── */}

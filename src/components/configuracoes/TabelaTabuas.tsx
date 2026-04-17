@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Pencil, Trash2, Plus, Check, X, Table, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Pencil, Trash2, Plus, Check, X, Table, Loader2, Copy } from "lucide-react";
 
 type Tabua = {
   id: string;
@@ -20,12 +20,22 @@ type FormState = {
 type ValorTabua = { idade: number; qx: number };
 
 const FORM_VAZIO: FormState = { nome: "", sigla: "", ativo: true };
+const N_IDADES = 120;
 
 function valoresVazios(): ValorTabua[] {
-  return Array.from({ length: 120 }, (_, i) => ({ idade: i, qx: 0 }));
+  return Array.from({ length: N_IDADES }, (_, i) => ({ idade: i, qx: 0 }));
 }
 
-// ── Campos de edição/criação ─────────────────────────────────────────────────
+function rawVazios(): string[] {
+  return Array(N_IDADES).fill("0");
+}
+
+function parseQx(s: string): number {
+  const v = parseFloat(s.trim().replace(",", "."));
+  return isNaN(v) ? 0 : Math.min(1, Math.max(0, v));
+}
+
+// ── Campos de edição/criação da tábua ────────────────────────────────────────
 
 interface CamposFormProps {
   f: FormState;
@@ -66,7 +76,7 @@ function CamposForm({ f, onChange }: CamposFormProps) {
   );
 }
 
-// ── Modal de valores ─────────────────────────────────────────────────────────
+// ── Modal de valores (grid estilo Excel) ─────────────────────────────────────
 
 interface ModalValoresProps {
   tabua: Tabua;
@@ -74,11 +84,16 @@ interface ModalValoresProps {
 }
 
 function ModalValores({ tabua, onFechar }: ModalValoresProps) {
+  // valores numéricos (fonte da verdade para salvar)
   const [valores, setValores] = useState<ValorTabua[]>(valoresVazios);
+  // raw strings para display nos inputs (evita reset durante digitação)
+  const [raw, setRaw] = useState<string[]>(rawVazios);
+
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   // Carregar valores existentes ao montar
   useEffect(() => {
@@ -86,10 +101,13 @@ function ModalValores({ tabua, onFechar }: ModalValoresProps) {
       .then((r) => r.json())
       .then((data: ValorTabua[]) => {
         if (Array.isArray(data) && data.length > 0) {
-          setValores((prev) => {
-            const mapa = new Map(data.map((v) => [v.idade, v.qx]));
-            return prev.map((v) => ({ ...v, qx: mapa.get(v.idade) ?? v.qx }));
-          });
+          const mapa = new Map(data.map((v) => [v.idade, v.qx]));
+          const novosValores = valoresVazios().map((v) => ({
+            ...v,
+            qx: mapa.get(v.idade) ?? 0,
+          }));
+          setValores(novosValores);
+          setRaw(novosValores.map(({ qx }) => (qx === 0 ? "0" : String(qx))));
         }
       })
       .catch(() => setErro("Erro ao carregar valores existentes."))
@@ -97,12 +115,65 @@ function ModalValores({ tabua, onFechar }: ModalValoresProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setQx = (idade: number, raw: string) => {
-    const qx = Math.min(1, Math.max(0, parseFloat(raw) || 0));
-    setValores((prev) => prev.map((v) => (v.idade === idade ? { ...v, qx } : v)));
+  // Atualiza o raw string durante digitação
+  const handleRawChange = (idx: number, s: string) => {
+    setRaw((prev) => {
+      const next = [...prev];
+      next[idx] = s;
+      return next;
+    });
   };
 
+  // Commita o valor numérico ao sair da célula
+  const handleBlur = (idx: number) => {
+    const qx = parseQx(raw[idx]);
+    setValores((prev) => prev.map((v) => (v.idade === idx ? { ...v, qx } : v)));
+    // Normaliza o display
+    setRaw((prev) => {
+      const next = [...prev];
+      next[idx] = qx === 0 ? "0" : String(qx);
+      return next;
+    });
+  };
+
+  // ── Colar (Ctrl+V) ────────────────────────────────────────────────
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const texto = e.clipboardData.getData("text");
+    const linhas = texto.split(/\r?\n/);
+
+    const novosValores = [...valores];
+    const novosRaw = [...raw];
+
+    let idx = 0;
+    for (const linha of linhas) {
+      if (idx >= N_IDADES) break;
+      const qx = parseQx(linha);
+      novosValores[idx] = { ...novosValores[idx], qx };
+      novosRaw[idx] = linha.trim() === "" ? "0" : linha.trim().replace(",", ".");
+      idx++;
+    }
+
+    setValores(novosValores);
+    setRaw(novosRaw);
+  }, [valores, raw]);
+
+  // ── Copiar tudo ───────────────────────────────────────────────────
+  const copiarTudo = async () => {
+    const texto = valores.map((v) => String(v.qx)).join("\n");
+    await navigator.clipboard.writeText(texto);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
+
+  // ── Salvar ────────────────────────────────────────────────────────
   const salvar = async () => {
+    // Commita qualquer raw ainda não parseado
+    const valoresFinais = valores.map((v, i) => ({
+      ...v,
+      qx: parseQx(raw[i]),
+    }));
+
     setSalvando(true);
     setErro("");
     setSucesso(false);
@@ -110,10 +181,11 @@ function ModalValores({ tabua, onFechar }: ModalValoresProps) {
       const res = await fetch(`/api/admin/tabuas/${tabua.id}/valores`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ valores }),
+        body: JSON.stringify({ valores: valoresFinais }),
       });
       const json = await res.json();
       if (!res.ok) { setErro(json.error ?? "Erro ao salvar"); return; }
+      setValores(valoresFinais);
       setSucesso(true);
     } finally {
       setSalvando(false);
@@ -126,49 +198,64 @@ function ModalValores({ tabua, onFechar }: ModalValoresProps) {
       <div className="absolute inset-0 bg-black/50" onClick={onFechar} />
 
       {/* Painel */}
-      <div className="relative z-10 bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-lg max-h-[90vh]">
+      <div className="relative z-10 bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-sm max-h-[90vh]">
 
         {/* Cabeçalho */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Valores da tábua</h2>
-            <p className="text-sm text-gray-500 mt-0.5">{tabua.nome}</p>
+            <h2 className="text-sm font-semibold text-gray-900">Valores da tábua</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{tabua.nome} · {tabua.sigla}</p>
           </div>
           <button
             onClick={onFechar}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Corpo com scroll */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Dica */}
+        <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 flex-shrink-0">
+          <p className="text-xs text-blue-700">
+            Cole uma coluna do Excel com <kbd className="px-1 py-0.5 bg-blue-100 rounded text-blue-800 font-mono text-[10px]">Ctrl+V</kbd> para preencher todos os valores de uma vez.
+          </p>
+        </div>
+
+        {/* Grid estilo planilha */}
+        <div
+          className="flex-1 overflow-y-auto"
+          onPaste={handlePaste}
+        >
           {carregando ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-gray-50 border-b border-gray-100 z-10">
+            <table className="w-full border-collapse text-xs font-mono">
+              <thead className="sticky top-0 z-10">
                 <tr>
-                  <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide text-left w-24">Idade</th>
-                  <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide text-left">qx</th>
+                  <th className="border border-gray-300 bg-gray-100 px-2 py-1.5 text-center text-gray-600 font-semibold w-14 select-none">
+                    Idade
+                  </th>
+                  <th className="border border-gray-300 bg-gray-100 px-2 py-1.5 text-center text-gray-600 font-semibold">
+                    qx
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {valores.map(({ idade, qx }) => (
-                  <tr key={idade} className="hover:bg-gray-50">
-                    <td className="px-5 py-2 text-gray-700 tabular-nums font-medium w-24">{idade}</td>
-                    <td className="px-5 py-2">
+              <tbody>
+                {valores.map(({ idade }, idx) => (
+                  <tr key={idade} className="group">
+                    <td className="border border-gray-200 px-2 py-0 text-center text-gray-400 bg-gray-50 select-none leading-none">
+                      <span className="block py-[3px]">{idade}</span>
+                    </td>
+                    <td className="border border-gray-200 p-0">
                       <input
-                        type="number"
-                        min={0}
-                        max={1}
-                        step={0.000001}
-                        value={qx}
-                        onChange={(e) => setQx(idade, e.target.value)}
-                        className="w-36 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 tabular-nums font-mono"
+                        type="text"
+                        inputMode="decimal"
+                        value={raw[idx]}
+                        onChange={(e) => handleRawChange(idx, e.target.value)}
+                        onBlur={() => handleBlur(idx)}
+                        className="w-full px-2 py-[3px] bg-transparent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 focus:bg-blue-50 group-hover:bg-gray-50 focus:group-hover:bg-blue-50 tabular-nums"
                       />
                     </td>
                   </tr>
@@ -179,28 +266,34 @@ function ModalValores({ tabua, onFechar }: ModalValoresProps) {
         </div>
 
         {/* Rodapé */}
-        <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 space-y-3">
-          {erro && (
-            <p className="text-sm text-red-600">{erro}</p>
-          )}
-          {sucesso && (
-            <p className="text-sm text-green-600">Valores salvos com sucesso!</p>
-          )}
-          <div className="flex gap-3 justify-end">
+        <div className="flex-shrink-0 px-5 py-3 border-t border-gray-200 space-y-2">
+          {erro && <p className="text-xs text-red-600">{erro}</p>}
+          {sucesso && <p className="text-xs text-green-600">Valores salvos com sucesso!</p>}
+          <div className="flex gap-2 justify-between">
             <button
-              onClick={onFechar}
-              className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              onClick={copiarTudo}
+              disabled={carregando}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition disabled:opacity-40"
             >
-              Cancelar
+              {copiado ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copiado ? "Copiado!" : "Copiar tudo"}
             </button>
-            <button
-              onClick={salvar}
-              disabled={salvando || carregando}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-lg transition"
-            >
-              {salvando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              Salvar tudo
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={onFechar}
+                className="px-3 py-2 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvar}
+                disabled={salvando || carregando}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-lg transition"
+              >
+                {salvando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                Salvar tudo
+              </button>
+            </div>
           </div>
         </div>
       </div>

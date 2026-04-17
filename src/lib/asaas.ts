@@ -91,18 +91,18 @@ export async function buscarClientePorEmail(email: string) {
 }
 
 /** Cria cliente no Asaas */
-export async function criarCliente(name: string, email: string) {
+export async function criarCliente(name: string, email: string, cpfCnpj: string) {
   return asaasFetch<AsaasCustomer>("/customers", {
     method: "POST",
-    body: JSON.stringify({ name, email }),
+    body: JSON.stringify({ name, email, cpfCnpj }),
   });
 }
 
 /** Garante que o cliente existe no Asaas; cria se necessário */
-export async function garantirCliente(name: string, email: string) {
+export async function garantirCliente(name: string, email: string, cpfCnpj: string) {
   const existente = await buscarClientePorEmail(email);
   if (existente) return { data: existente, error: null };
-  return criarCliente(name, email);
+  return criarCliente(name, email, cpfCnpj);
 }
 
 /** Due date: hoje + 3 dias em formato YYYY-MM-DD */

@@ -41,5 +41,9 @@ export default async function DashboardPage() {
 
   const creditos = (profileData as { creditos: number } | null)?.creditos ?? 0;
 
-  return <Dashboard userName={userName} clientesRecentes={clientes} creditos={creditos} totalClientes={totalClientes ?? 0} />;
+  return (
+    <div className="max-w-5xl mx-auto p-8">
+      <Dashboard userName={userName} clientesRecentes={clientes} creditos={creditos} totalClientes={totalClientes ?? 0} />
+    </div>
+  );
 }

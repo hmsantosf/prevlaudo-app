@@ -25,7 +25,7 @@ export default async function DashboardLayout({
         userCategoria={profile?.categoria ?? ""}
       />
       <main className="flex-1 overflow-y-auto">
-        <div className="max-w-5xl mx-auto p-8">{children}</div>
+        <div className="w-full h-full">{children}</div>
       </main>
     </div>
   );

@@ -31,7 +31,7 @@ export default async function CuponsPage() {
   const cupons = (cuponsData ?? []) as Cupom[];
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl mx-auto p-8 space-y-6">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
           <Ticket className="w-5 h-5 text-gray-600" />

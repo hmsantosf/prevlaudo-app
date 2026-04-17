@@ -122,6 +122,7 @@ export default function ComprarCreditosPage() {
   // ── Resultado ──────────────────────────────────────────────────
   if (resultado) {
     return (
+      <div className="p-8">
       <div className="space-y-6 max-w-lg">
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition">
           <ChevronLeft className="w-4 h-4" /> Voltar ao dashboard
@@ -236,11 +237,13 @@ export default function ComprarCreditosPage() {
           </Link>
         </div>
       </div>
+      </div>
     );
   }
 
   // ── Formulário de checkout ─────────────────────────────────────
   return (
+    <div className="p-8">
     <div className="space-y-6 max-w-lg">
       <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition">
         <ChevronLeft className="w-4 h-4" /> Voltar ao dashboard
@@ -429,6 +432,7 @@ export default function ComprarCreditosPage() {
           </p>
         </div>
       </div>
+    </div>
     </div>
   );
 }

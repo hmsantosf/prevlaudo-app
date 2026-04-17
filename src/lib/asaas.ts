@@ -98,10 +98,16 @@ export async function criarCliente(name: string, email: string, cpfCnpj: string)
   });
 }
 
-/** Garante que o cliente existe no Asaas; cria se necessário */
+/** Garante que o cliente existe no Asaas; cria se necessário. Se já existir, atualiza o cpfCnpj. */
 export async function garantirCliente(name: string, email: string, cpfCnpj: string) {
   const existente = await buscarClientePorEmail(email);
-  if (existente) return { data: existente, error: null };
+  if (existente) {
+    await asaasFetch(`/customers/${existente.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ cpfCnpj }),
+    });
+    return { data: existente, error: null };
+  }
   return criarCliente(name, email, cpfCnpj);
 }
 

@@ -28,6 +28,8 @@ const processoSchema = z.object({
   // Identificação do relatório
   dataRelatorio:         z.string(),
   percentualContinuacao: z.string(),
+  // Armazenamento
+  pdf_url:               z.string().optional(),
 });
 
 /**
@@ -160,6 +162,7 @@ export async function POST(request: NextRequest) {
       status:         "pendente",
       data_relatorio: dados.dataRelatorio || null,
       dados_aerus:    dados,
+      pdf_url:        dados.pdf_url ?? null,
     })
     .select("id")
     .single();

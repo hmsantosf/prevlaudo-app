@@ -3,29 +3,44 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Users,
-  CreditCard,
   Settings,
   LogOut,
+  ChevronDown,
+  ChevronRight,
+  UserCog,
+  Tag,
+  Table2,
 } from "lucide-react";
 import { clsx } from "clsx";
 
 interface Props {
   userName: string;
   userEmail: string;
+  userCategoria: string;
 }
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/clientes", label: "Clientes", icon: Users },
-  { href: "/dashboard/planos", label: "Planos", icon: CreditCard },
-  { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-export default function Sidebar({ userName, userEmail }: Props) {
+const configSubmenu = [
+  { href: "/dashboard/configuracoes", label: "Usuários", icon: UserCog },
+  { href: "/dashboard/configuracoes#cupons", label: "Cupons", icon: Tag },
+  { href: "/dashboard/configuracoes/tabuas", label: "Tábuas", icon: Table2 },
+];
+
+export default function Sidebar({ userName, userEmail, userCategoria }: Props) {
   const pathname = usePathname();
+  const [configAberto, setConfigAberto] = useState(false);
+  const isLiper = userCategoria === "liper";
+
+  const configAtivo = pathname === "/dashboard/configuracoes" ||
+    pathname.startsWith("/dashboard/configuracoes/");
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
@@ -51,6 +66,60 @@ export default function Sidebar({ userName, userEmail }: Props) {
             {label}
           </Link>
         ))}
+
+        {/* Configurações */}
+        {isLiper ? (
+          <div>
+            <button
+              onClick={() => setConfigAberto((v) => !v)}
+              className={clsx(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition",
+                configAtivo
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              )}
+            >
+              <Settings className="w-4 h-4 flex-shrink-0" />
+              <span className="flex-1 text-left">Configurações</span>
+              {configAberto
+                ? <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                : <ChevronRight className="w-4 h-4 flex-shrink-0" />}
+            </button>
+
+            {configAberto && (
+              <div className="mt-1 ml-4 space-y-1 border-l border-gray-200 pl-3">
+                {configSubmenu.map(({ href, label, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={clsx(
+                      "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition",
+                      pathname === href.split("#")[0] && !href.includes("#")
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link
+            href="/dashboard/configuracoes"
+            className={clsx(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition",
+              configAtivo
+                ? "bg-blue-50 text-blue-700"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <Settings className="w-4 h-4 flex-shrink-0" />
+            Configurações
+          </Link>
+        )}
       </nav>
 
       {/* User + logout */}

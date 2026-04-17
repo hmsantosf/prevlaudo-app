@@ -164,9 +164,9 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
   // ── Etapa 2: layout split full-width ────────────────────────────────────────
   if (etapa === 2 && dados) {
     return (
-      <div className="flex flex-col" style={{ height: "calc(100vh - 80px)" }}>
+      <div className="w-full flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
         {/* Step indicator + erro */}
-        <div className="max-w-3xl mx-auto w-full px-4 pt-2 pb-1">
+        <div className="w-full px-4 pt-2 pb-1">
           <StepIndicador etapa={etapa} className="mb-4" />
           {erroGlobal && (
             <div className="mb-3 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
@@ -187,7 +187,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
         </div>
 
         {/* Split panels */}
-        <div ref={containerRef} className="flex flex-1 overflow-hidden border-t border-gray-200">
+        <div ref={containerRef} className="flex flex-1 overflow-hidden border-t border-gray-200 w-full">
           {/* Painel esquerdo: visualizador de PDF */}
           {!collapsed && (
             <div

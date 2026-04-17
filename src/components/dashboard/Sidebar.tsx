@@ -29,8 +29,8 @@ const navLinks = [
 ];
 
 const configSubmenu = [
-  { href: "/dashboard/configuracoes", label: "Usuários", icon: UserCog },
-  { href: "/dashboard/configuracoes#cupons", label: "Cupons", icon: Tag },
+  { href: "/dashboard/configuracoes/usuarios", label: "Usuários", icon: UserCog },
+  { href: "/dashboard/configuracoes/cupons", label: "Cupons", icon: Tag },
   { href: "/dashboard/configuracoes/tabuas", label: "Tábuas", icon: Table2 },
 ];
 

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import Step1Upload from "./Step1Upload";
 import Step2Confirmacao from "./Step2Confirmacao";
+import PdfViewer from "./PdfViewer";
 import type { DadosAerus } from "@/lib/gemini-extract";
 
 type Etapa = 1 | 2;
@@ -192,16 +193,12 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
           {!collapsed && (
             <div
               style={{ width: `${leftPct}%` }}
-              className="flex-shrink-0 bg-gray-100 overflow-hidden"
+              className="flex-shrink-0 overflow-hidden"
             >
               {pdfObjectUrl ? (
-                <iframe
-                  src={pdfObjectUrl}
-                  className="w-full h-full"
-                  title="Visualizador de PDF"
-                />
+                <PdfViewer file={pdfObjectUrl} />
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm" style={{ background: "#2b2b2b" }}>
                   Carregando PDF…
                 </div>
               )}

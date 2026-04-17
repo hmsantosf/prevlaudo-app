@@ -137,7 +137,7 @@ export async function criarCobranca(params: {
       externalReference: params.externalReference,
       split: [
         { walletId: "7a2dfcb8-0177-4176-a9f9-ae2666d36949", percentualValue: 67 },
-        { walletId: "be584c53-2a78-4d7a-bc57-9d985bb383cc", percentualValue: 33 },
+        { walletId: "934f6753-0c21-48a3-912a-03e9d01fd779", percentualValue: 33 },
       ],
     }),
   });

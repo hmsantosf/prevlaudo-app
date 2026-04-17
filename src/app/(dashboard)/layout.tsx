@@ -14,7 +14,7 @@ export default async function DashboardLayout({
   const { data: profile } = await supabaseAdmin()
     .from("profiles")
     .select("categoria")
-    .eq("id", session.user.id)
+    .eq("id", session.user?.id ?? "")
     .single();
 
   return (

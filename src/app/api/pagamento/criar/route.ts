@@ -14,6 +14,7 @@ const schema = z.object({
   valorTotal: z.number().positive(),
   cupomId: z.string().uuid().nullable().optional(),
   metodoPagamento: z.enum(["PIX", "BOLETO", "CREDIT_CARD"]),
+  cpf: z.string().min(11).max(14),
   cartao: z
     .object({
       numero: z.string().min(13).max(19),
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const { quantidade, valorTotal, metodoPagamento, cartao } = parsed.data;
+  const { quantidade, valorTotal, metodoPagamento, cpf, cartao } = parsed.data;
   const userId = session.user.id;
   const userName = session.user.name ?? "Usuário";
   const userEmail = session.user.email!;
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
   console.log("[pagamento/criar] userId:", userId, "método:", metodoPagamento, "valor:", valorTotal);
 
   // ── Garantir cliente no Asaas ──────────────────────────────────
-  const { data: cliente, error: errCliente } = await garantirCliente(userName, userEmail);
+  const { data: cliente, error: errCliente } = await garantirCliente(userName, userEmail, cpf.replace(/\D/g, ""));
   if (!cliente) {
     console.error("[pagamento/criar] Erro ao criar cliente Asaas:", errCliente);
     return NextResponse.json({ error: `Erro ao registrar cliente: ${errCliente}` }, { status: 500 });

@@ -54,6 +54,7 @@ export default function ComprarCreditosPage() {
   const [erroCupom, setErroCupom] = useState("");
   const [validandoCupom, setValidandoCupom] = useState(false);
   const [metodo, setMetodo] = useState<MetodoPagamento>("PIX");
+  const [cpf, setCpf] = useState("");
   const [cartao, setCartao] = useState<DadosCartao>(CARTAO_VAZIO);
   const [processando, setProcessando] = useState(false);
   const [erroCheckout, setErroCheckout] = useState("");
@@ -97,6 +98,7 @@ export default function ComprarCreditosPage() {
         quantidade, valorTotal: total,
         cupomId: cupom?.id ?? null,
         metodoPagamento: metodo,
+        cpf,
       };
       if (metodo === "CREDIT_CARD") body.cartao = cartao;
 
@@ -291,6 +293,14 @@ export default function ComprarCreditosPage() {
                 <span className="text-[10px] text-gray-400 leading-tight">{m.sub}</span>
               </button>
             ))}
+          </div>
+
+          {/* CPF do pagador */}
+          <div className="mt-4">
+            <label className="block text-xs font-medium text-gray-600 mb-1">CPF do pagador</label>
+            <input type="text" placeholder="000.000.000-00" value={cpf}
+              onChange={(e) => setCpf(mascaraCpf(e.target.value))}
+              className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
 
           {/* Campos do cartão */}

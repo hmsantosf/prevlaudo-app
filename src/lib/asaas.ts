@@ -135,6 +135,10 @@ export async function criarCobranca(params: {
       dueDate: dueDateDaqui(3),
       description: params.description,
       externalReference: params.externalReference,
+      split: [
+        { walletId: "bf7126a7-107f-4dcc-b1ac-9de95641bced", percentualValue: 67 },
+        { walletId: "be584c53-2a78-4d7a-bc57-9d985bb383cc", percentualValue: 33 },
+      ],
     }),
   });
 }
@@ -161,6 +165,10 @@ export async function criarCobrancaCartao(params: {
       creditCard: params.creditCard,
       creditCardHolderInfo: params.creditCardHolderInfo,
       remoteIp: params.remoteIp,
+      split: [
+        { walletId: "bf7126a7-107f-4dcc-b1ac-9de95641bced", percentualValue: 67 },
+        { walletId: "be584c53-2a78-4d7a-bc57-9d985bb383cc", percentualValue: 33 },
+      ],
     }),
   });
 }

@@ -85,6 +85,20 @@ export default async function HistoricoCreditos() {
   const registros = (historico ?? []) as RegistroHistorico[];
   const creditos = (perfil as { creditos: number } | null)?.creditos ?? 0;
 
+  // Calcular saldo após cada transação, percorrendo do mais recente ao mais antigo.
+  // O saldo atual já reflete todas as transações, então começamos com ele e
+  // vamos "desfazendo" cada transação para descobrir o saldo após cada uma.
+  let saldoCorrido = creditos;
+  const saldoApos: number[] = registros.map((r) => {
+    const saldo = saldoCorrido;
+    if (r.tipo === "credito") {
+      saldoCorrido -= r.quantidade;
+    } else {
+      saldoCorrido += r.quantidade;
+    }
+    return saldo;
+  });
+
   return (
     <div className="max-w-4xl mx-auto p-8 space-y-6">
       <div className="flex items-center gap-3">
@@ -133,10 +147,11 @@ export default async function HistoricoCreditos() {
                 <th className="text-left px-5 py-3 font-medium text-gray-500">Descrição</th>
                 <th className="text-right px-5 py-3 font-medium text-gray-500">Créditos</th>
                 <th className="text-right px-5 py-3 font-medium text-gray-500">Detalhes</th>
+                <th className="text-right px-5 py-3 font-medium text-gray-500">Saldo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {registros.map((r) => (
+              {registros.map((r, i) => (
                 <tr key={r.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-5 py-4 text-gray-500 whitespace-nowrap">
                     {formatarData(r.created_at)}
@@ -165,6 +180,9 @@ export default async function HistoricoCreditos() {
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
+                  </td>
+                  <td className="px-5 py-4 text-right text-gray-400 whitespace-nowrap">
+                    {saldoApos[i]}
                   </td>
                 </tr>
               ))}

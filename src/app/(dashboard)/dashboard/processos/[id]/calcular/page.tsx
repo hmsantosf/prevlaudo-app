@@ -32,28 +32,11 @@ function normalizarSexo(sexo: string | null | undefined): "MASCULINO" | "FEMININ
   return sexo.toUpperCase().includes("FEM") ? "FEMININO" : "MASCULINO";
 }
 
-function fmt(n: unknown): string {
-  if (typeof n === "number") return n.toLocaleString("pt-BR", { maximumFractionDigits: 6 });
-  return String(n ?? "—");
+function fmt6(n: number | null | undefined): string {
+  if (n === null || n === undefined) return "—";
+  return n.toLocaleString("pt-BR", { minimumFractionDigits: 6, maximumFractionDigits: 6 });
 }
 
-function extrairNumero(valor: unknown): number | null {
-  if (typeof valor === "number") return valor;
-  if (typeof valor === "string") {
-    const n = parseFloat(valor.replace(",", "."));
-    return isNaN(n) ? null : n;
-  }
-  if (valor !== null && typeof valor === "object") {
-    const obj = valor as Record<string, unknown>;
-    for (const chave of ["valor", "value", "resultado", "axy", "ax", "ay", "total"]) {
-      if (typeof obj[chave] === "number") return obj[chave] as number;
-    }
-    for (const v of Object.values(obj)) {
-      if (typeof v === "number") return v;
-    }
-  }
-  return null;
-}
 
 function calcularIdade(dataNasc: string | null, dataRefIso: string | null): number | null {
   if (!dataNasc || !dataRefIso) return null;
@@ -81,11 +64,16 @@ type ClienteDB = {
   indenizacao_atualizada: string | null;
 };
 
+type ChamadaAPI = {
+  axy?: number;
+  [key: string]: unknown;
+};
+
 type ResultadoAPI = {
   axy_final?: number;
-  CHAMADA_1?: unknown;
-  CHAMADA_2?: unknown;
-  CHAMADA_3?: unknown;
+  chamada_1?: ChamadaAPI;
+  chamada_2?: ChamadaAPI;
+  chamada_3?: ChamadaAPI;
   [key: string]: unknown;
 };
 
@@ -205,12 +193,10 @@ export default async function CalcularPage({
     const idadePart = calcularIdade(c.data_nascimento, iso);
     const idadeBen  = calcularIdade(c.data_nasc_beneficiario, iso);
     const diffIdade = idadePart !== null && idadeBen !== null ? idadeBen - idadePart : null;
-    const ax  = res ? extrairNumero(res.CHAMADA_1) : null;
-    const ay  = res ? extrairNumero(res.CHAMADA_2) : null;
-    const axy = res ? extrairNumero(res.CHAMADA_3) : null;
-    const anuidade = ax !== null
-      ? ax + percentual * ((ay ?? 0) - (axy ?? 0))
-      : null;
+    const ax  = res?.chamada_1?.axy ?? null;
+    const ay  = res?.chamada_2?.axy ?? null;
+    const axy = res?.chamada_3?.axy ?? null;
+    const anuidade = res?.axy_final ?? null;
     const anuidadeMensal = anuidade !== null ? anuidade / 12 : null;
     return { label, idadePart, idadeBen, diffIdade, ax, ay, axy, anuidade, anuidadeMensal, raw: res };
   });
@@ -286,26 +272,18 @@ export default async function CalcularPage({
                 </>
               )}
 
-              <Row label="ax"  value={bloco.ax  !== null ? fmt(bloco.ax)  : "—"} />
+              <Row label="ax"  value={fmt6(bloco.ax)} />
 
               {temBeneficiario && (
                 <>
-                  <Row label="ay"  value={bloco.ay  !== null ? fmt(bloco.ay)  : "—"} />
-                  <Row label="axy" value={bloco.axy !== null ? fmt(bloco.axy) : "—"} />
+                  <Row label="ay"  value={fmt6(bloco.ay)} />
+                  <Row label="axy" value={fmt6(bloco.axy)} />
                 </>
               )}
 
               <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
-                <Row
-                  label="Anuidade"
-                  value={bloco.anuidade !== null ? fmt(bloco.anuidade) : "—"}
-                  bold
-                />
-                <Row
-                  label="Anuidade mensal"
-                  value={bloco.anuidadeMensal !== null ? fmt(bloco.anuidadeMensal) : "—"}
-                  bold
-                />
+                <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
+                <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
               </div>
             </div>
           </div>

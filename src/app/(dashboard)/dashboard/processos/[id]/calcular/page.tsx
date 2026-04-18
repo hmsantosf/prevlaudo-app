@@ -251,7 +251,6 @@ export default async function CalcularPage({
               <InfoItem label="Nome"               value={c.name} />
               <InfoItem label="Sexo"               value={c.sexo ?? ""} />
               <InfoItem label="Data de nascimento" value={isoParaBR(c.data_nascimento)} />
-              <InfoItem label="Idade na concessão" value={idadePart !== null ? `${idadePart} anos` : "—"} />
             </div>
           </div>
 
@@ -264,8 +263,7 @@ export default async function CalcularPage({
                 <InfoItem label="Nome"               value={c.nome_beneficiario ?? ""} />
                 <InfoItem label="Sexo"               value="FEMININO" />
                 <InfoItem label="Data de nascimento" value={isoParaBR(c.data_nasc_beneficiario)} />
-                <InfoItem label="Idade na concessão" value={idadeBen !== null ? `${idadeBen} anos` : "—"} />
-                <InfoItem label="Diferença de idade" value={diffIdade !== null ? `${diffIdade} anos` : "—"} />
+                <InfoItem label="% Continuação"      value={c.percentual_continuacao ?? ""} />
               </div>
             </div>
           )}

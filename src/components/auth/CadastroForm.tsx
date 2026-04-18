@@ -99,6 +99,7 @@ export default function CadastroForm() {
             <input
               {...register("password")}
               type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
               placeholder="••••••••"
               className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
@@ -123,6 +124,7 @@ export default function CadastroForm() {
             <input
               {...register("confirmPassword")}
               type={showConfirm ? "text" : "password"}
+              autoComplete="new-password"
               placeholder="••••••••"
               className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />

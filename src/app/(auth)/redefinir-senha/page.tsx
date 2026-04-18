@@ -37,6 +37,7 @@ export default function RedefinirSenhaPage() {
         });
     } else if (tokenHash && type === "recovery") {
       // Formato 2: token_hash via query param
+      console.log("[redefinir-senha] token_hash:", tokenHash, "type:", type);
       supabase.auth
         .verifyOtp({ token_hash: tokenHash, type: "recovery" })
         .then(({ error }) => {

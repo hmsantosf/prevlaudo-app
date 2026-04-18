@@ -24,16 +24,18 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  if (error || !data?.properties?.action_link) {
+  if (error || !data?.properties?.hashed_token) {
     console.error("[recuperar-senha] Erro ao gerar link:", error?.message);
     // Still return success — don't reveal the error to the client
     return NextResponse.json({ ok: true });
   }
 
+  const link = `https://www.prevaerus.com.br/redefinir-senha?token_hash=${data.properties.hashed_token}&type=recovery`;
+
   await enviarEmail(
     email,
     "Recuperação de senha – prevAERUS",
-    emailRecuperacaoSenha({ link: data.properties.action_link })
+    emailRecuperacaoSenha({ link })
   );
 
   return NextResponse.json({ ok: true });

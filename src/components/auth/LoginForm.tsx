@@ -91,6 +91,11 @@ export default function LoginForm() {
         {errors.password && (
           <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
         )}
+        <div className="flex justify-end mt-1">
+          <Link href="/recuperar-senha" className="text-xs text-blue-600 hover:underline">
+            Esqueceu sua senha?
+          </Link>
+        </div>
       </div>
 
       {serverError && (

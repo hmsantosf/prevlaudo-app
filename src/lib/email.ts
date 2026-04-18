@@ -16,6 +16,29 @@ export async function enviarEmail(to: string, subject: string, html: string) {
   }
 }
 
+export function emailRecuperacaoSenha(params: { link: string }) {
+  return `
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2 style="color: #1d4ed8;">Recuperação de senha – prevAERUS</h2>
+      <p>Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+      <p>Clique no botão abaixo para criar uma nova senha. Este link é válido por <strong>24 horas</strong>.</p>
+      <div style="text-align:center;margin:32px 0;">
+        <a href="${params.link}"
+           style="background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:8px;display:inline-block;">
+          Redefinir minha senha
+        </a>
+      </div>
+      <p style="color:#6b7280;font-size:13px;">
+        Se você não solicitou a recuperação de senha, ignore este e-mail. Sua senha permanece a mesma.
+      </p>
+      <p style="color:#6b7280;font-size:13px;">
+        Caso o botão não funcione, copie e cole o link abaixo no seu navegador:<br/>
+        <a href="${params.link}" style="color:#2563eb;word-break:break-all;">${params.link}</a>
+      </p>
+    </div>
+  `;
+}
+
 export function emailConfirmacaoCreditos(params: {
   nome: string;
   quantidade: number;

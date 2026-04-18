@@ -6,7 +6,9 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
 
   const isAuthRoute = nextUrl.pathname.startsWith("/login") ||
-    nextUrl.pathname.startsWith("/cadastro");
+    nextUrl.pathname.startsWith("/cadastro") ||
+    nextUrl.pathname.startsWith("/recuperar-senha") ||
+    nextUrl.pathname.startsWith("/redefinir-senha");
   const isDashboardRoute = nextUrl.pathname.startsWith("/dashboard");
 
   if (isDashboardRoute && !isLoggedIn) {

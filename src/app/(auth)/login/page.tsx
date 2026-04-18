@@ -8,10 +8,11 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ verified?: string }>;
+  searchParams: Promise<{ verified?: string; senha_alterada?: string }>;
 }) {
   const params = await searchParams;
   const verified = params.verified === "1";
+  const senhaAlterada = params.senha_alterada === "1";
 
   return (
     <>
@@ -19,6 +20,13 @@ export default async function LoginPage({
         <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
           <p className="text-sm text-green-700 text-center">
             E-mail confirmado! Faça login para acessar.
+          </p>
+        </div>
+      )}
+      {senhaAlterada && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-700 text-center">
+            Senha alterada com sucesso! Faça login com sua nova senha.
           </p>
         </div>
       )}

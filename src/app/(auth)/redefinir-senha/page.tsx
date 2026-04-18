@@ -18,28 +18,38 @@ export default function RedefinirSenhaPage() {
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    // Supabase redirects with session tokens in the URL fragment after verifying the recovery link
     const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get("access_token");
-    const refreshToken = params.get("refresh_token");
-    const type = params.get("type");
+    const hashParams = new URLSearchParams(hash);
+    const searchParams = new URLSearchParams(window.location.search);
 
-    if (!accessToken || !refreshToken || type !== "recovery") {
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const tokenHash = searchParams.get("token_hash");
+    const type = hashParams.get("type") || searchParams.get("type");
+
+    if (accessToken && refreshToken && type === "recovery") {
+      // Formato 1: hash com access_token
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (error) setEstado("token_invalido");
+          else setEstado("pronto");
+        });
+    } else if (tokenHash && type === "recovery") {
+      // Formato 2: token_hash via query param
+      supabase.auth
+        .verifyOtp({ token_hash: tokenHash, type: "recovery" })
+        .then(({ error }) => {
+          if (error) {
+            console.error("[redefinir-senha] verifyOtp error:", error.message);
+            setEstado("token_invalido");
+          } else {
+            setEstado("pronto");
+          }
+        });
+    } else {
       setEstado("token_invalido");
-      return;
     }
-
-    supabase.auth
-      .setSession({ access_token: accessToken, refresh_token: refreshToken })
-      .then(({ error }) => {
-        if (error) {
-          console.error("[redefinir-senha] Erro ao definir sessão:", error.message);
-          setEstado("token_invalido");
-        } else {
-          setEstado("pronto");
-        }
-      });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

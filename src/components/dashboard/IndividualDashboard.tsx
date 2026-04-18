@@ -74,7 +74,10 @@ export default function Dashboard({ userName, clientesRecentes, creditos, totalC
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4">
+        <Link
+          href="/dashboard/creditos/historico"
+          className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 hover:border-amber-300 hover:shadow-sm transition"
+        >
           <div className="w-11 h-11 bg-amber-100 rounded-xl flex items-center justify-center">
             <Coins className="w-5 h-5 text-amber-600" />
           </div>
@@ -82,7 +85,7 @@ export default function Dashboard({ userName, clientesRecentes, creditos, totalC
             <p className="text-2xl font-bold text-gray-900">{creditos}</p>
             <p className="text-sm text-gray-500">Créditos disponíveis</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* CTA novo cliente */}

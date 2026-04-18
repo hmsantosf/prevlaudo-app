@@ -59,14 +59,36 @@ export async function PATCH(request: NextRequest) {
   }
 
   const { id, categoria, creditos } = parsed.data;
+  const admin = supabaseAdmin();
 
-  const { error } = await supabaseAdmin()
+  // ── Buscar créditos atuais para calcular diff ──────────────────
+  const { data: perfilAtual } = await admin
+    .from("profiles")
+    .select("creditos")
+    .eq("id", id)
+    .maybeSingle();
+
+  const creditosAtuais = (perfilAtual as { creditos: number } | null)?.creditos ?? 0;
+
+  const { error } = await admin
     .from("profiles")
     .update({ categoria, creditos })
     .eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: "Erro ao atualizar usuário" }, { status: 500 });
+  }
+
+  // ── Registrar histórico se créditos mudaram ────────────────────
+  const diff = creditos - creditosAtuais;
+  if (diff !== 0) {
+    await admin.from("creditos_historico").insert({
+      user_id: id,
+      tipo: diff > 0 ? "credito" : "debito",
+      quantidade: Math.abs(diff),
+      descricao: diff > 0 ? "Creditado pelo sistema" : "Debitado pelo sistema",
+      origem: "sistema",
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
       value: number;
       status: string;
       externalReference: string | null;
+      billingType: string;
+      discount?: number;
+      creditCard?: { number?: string };
     };
   };
 
@@ -88,6 +91,21 @@ export async function POST(request: NextRequest) {
   }
 
   console.log(`[webhook] créditos atualizados: userId=${userId} +${quantidade} → total=${novosCreditos}`);
+
+  // ── Registrar histórico de créditos ───────────────────────────
+  await admin.from("creditos_historico").insert({
+    user_id: userId,
+    tipo: "credito",
+    quantidade: quantidade,
+    descricao: `Compra de ${quantidade} crédito${quantidade !== 1 ? "s" : ""}`,
+    origem: "pagamento",
+    pagamento_id: pagamento.id,
+    valor_total: pagamento.value,
+    desconto: pagamento.discount ?? 0,
+    valor_pago: pagamento.value,
+    metodo_pagamento: pagamento.billingType,
+    ultimos_4_digitos: pagamento.creditCard?.number?.slice(-4) ?? null,
+  });
 
   // ── Atualizar status local ─────────────────────────────────────
   await admin

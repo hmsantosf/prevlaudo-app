@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 // Helpers
 // ─────────────────────────────────────────────────────────────────
 
-/** "50,00 %" ou "70,00%" → 0.50 / 0.70 */
 function parsePorcentagem(texto: string | null): number {
   if (!texto) return 0;
   const limpo = texto.replace(/[^0-9,.]/g, "").replace(",", ".");
@@ -21,7 +20,6 @@ function parsePorcentagem(texto: string | null): number {
   return isNaN(num) ? 0 : num / 100;
 }
 
-/** "1960-01-15" (ISO) → "15/01/1960" (BR) */
 function isoParaBR(iso: string | null | undefined): string {
   if (!iso) return "";
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -29,7 +27,6 @@ function isoParaBR(iso: string | null | undefined): string {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
-/** "Masculino" | "masculino" | "MASCULINO" → "MASCULINO" */
 function normalizarSexo(sexo: string | null | undefined): "MASCULINO" | "FEMININO" {
   if (!sexo) return "MASCULINO";
   return sexo.toUpperCase().includes("FEM") ? "FEMININO" : "MASCULINO";
@@ -40,10 +37,6 @@ function fmt(n: unknown): string {
   return String(n ?? "—");
 }
 
-/**
- * Extrai o primeiro valor numérico de um campo que pode ser
- * number, string numérica ou objeto com propriedades numéricas.
- */
 function extrairNumero(valor: unknown): number | null {
   if (typeof valor === "number") return valor;
   if (typeof valor === "string") {
@@ -52,11 +45,9 @@ function extrairNumero(valor: unknown): number | null {
   }
   if (valor !== null && typeof valor === "object") {
     const obj = valor as Record<string, unknown>;
-    // Tenta chaves semânticas antes de iterar
     for (const chave of ["valor", "value", "resultado", "axy", "ax", "ay", "total"]) {
       if (typeof obj[chave] === "number") return obj[chave] as number;
     }
-    // Fallback: primeiro valor numérico encontrado
     for (const v of Object.values(obj)) {
       if (typeof v === "number") return v;
     }
@@ -64,12 +55,15 @@ function extrairNumero(valor: unknown): number | null {
   return null;
 }
 
-// Mapeamento CHAMADA_N → label exibida
-const LABEL_CHAMADA: Record<string, string> = {
-  CHAMADA_1: "ax",
-  CHAMADA_2: "ay",
-  CHAMADA_3: "axy",
-};
+function calcularIdade(dataNasc: string | null, dataRef: string | null): number | null {
+  if (!dataNasc || !dataRef) return null;
+  const nasc = new Date(dataNasc);
+  const ref = new Date(dataRef);
+  let idade = ref.getFullYear() - nasc.getFullYear();
+  const m = ref.getMonth() - nasc.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < nasc.getDate())) idade--;
+  return idade;
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Tipos
@@ -94,18 +88,17 @@ type ProcessoDB = {
   clientes: ClienteDB | null;
 };
 
-type LinhaCalculo = Record<string, unknown>;
-
 type ResultadoAPI = {
   axy_final?: number;
   formula?: string;
-  calculos?: LinhaCalculo[];
-  resultados?: LinhaCalculo[];
+  CHAMADA_1?: unknown;
+  CHAMADA_2?: unknown;
+  CHAMADA_3?: unknown;
   [key: string]: unknown;
 };
 
 // ─────────────────────────────────────────────────────────────────
-// Componentes de exibição
+// Componentes
 // ─────────────────────────────────────────────────────────────────
 
 function InfoItem({ label, value }: { label: string; value: string }) {
@@ -113,41 +106,6 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">{label}</p>
       <p className="text-sm text-gray-900">{value || "—"}</p>
-    </div>
-  );
-}
-
-function TabelaCalculos({ linhas }: { linhas: LinhaCalculo[] }) {
-  if (!linhas.length) return null;
-  const colunas = Object.keys(linhas[0]);
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-gray-100 bg-gray-50">
-            {colunas.map((col) => (
-              <th
-                key={col}
-                className="px-4 py-2.5 text-left font-medium text-gray-500 uppercase text-xs tracking-wide"
-              >
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {linhas.map((linha, i) => (
-            <tr key={i} className="hover:bg-gray-50">
-              {colunas.map((col) => (
-                <td key={col} className="px-4 py-3 text-gray-700 tabular-nums">
-                  {fmt(linha[col])}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -164,7 +122,6 @@ export default async function CalcularPage({
   const { id } = await params;
   const session = await auth();
 
-  // ── Busca processo + cliente ──────────────────────────────────
   const { data: processo } = await supabaseAdmin()
     .from("processos")
     .select(
@@ -182,18 +139,31 @@ export default async function CalcularPage({
   if (!processo) notFound();
 
   const p = processo as any;
-  const c = p.clientes;
+  const c = p.clientes as ClienteDB;
 
   if (!c) notFound();
 
-  // ── Monta payload para a API ──────────────────────────────────
+  // ── Dados derivados ───────────────────────────────────────────
   const temBeneficiario = Boolean(c.data_nasc_beneficiario);
+  const sexoPart = normalizarSexo(c.sexo);
+  const idadePart = calcularIdade(c.data_nascimento, c.data_concessao);
+  const idadeBen = calcularIdade(c.data_nasc_beneficiario, c.data_concessao);
+  const diffIdade = idadePart !== null && idadeBen !== null ? idadeBen - idadePart : null;
+  const percentual = parsePorcentagem(c.percentual_continuacao);
 
+  const tabulaPart = sexoPart === "MASCULINO" ? "AT83M2" : "AT83F2";
+  const tabulaOutra = sexoPart === "MASCULINO" ? "AT83F2" : "AT83M2";
+
+  const axParams  = { qx: tabulaPart,  qy: "ZERO",       idade: idadePart, diff: 0 };
+  const ayParams  = { qx: "ZERO",      qy: tabulaPart,   idade: idadeBen,  diff: 0 };
+  const axyParams = { qx: tabulaPart,  qy: tabulaOutra,  idade: idadePart, diff: diffIdade ?? 0 };
+
+  // ── Payload para a API ────────────────────────────────────────
   const payload = {
     data_nascimento_participante: isoParaBR(c.data_nascimento),
     data_concessao:               isoParaBR(c.data_concessao),
-    sexo_participante:            normalizarSexo(c.sexo),
-    percentual_continuacao:       parsePorcentagem(c.percentual_continuacao),
+    sexo_participante:            sexoPart,
+    percentual_continuacao:       percentual,
     ...(temBeneficiario && {
       data_nascimento_beneficiario: isoParaBR(c.data_nasc_beneficiario),
       sexo_beneficiario:            "FEMININO",
@@ -202,7 +172,7 @@ export default async function CalcularPage({
 
   console.log("[calcular] payload enviado à API:", JSON.stringify(payload, null, 2));
 
-  // ── Chama a API externa ───────────────────────────────────────
+  // ── Chamada à API externa ─────────────────────────────────────
   let resultado: ResultadoAPI | null = null;
   let erroAPI: string | null = null;
 
@@ -214,13 +184,11 @@ export default async function CalcularPage({
       cache: "no-store",
     });
 
-    // Lê o corpo como texto bruto antes de tentar parsear
     const textoResposta = await res.text();
     console.log(`[calcular] status HTTP: ${res.status}`);
     console.log("[calcular] resposta bruta da API:", textoResposta);
 
     if (!res.ok) {
-      // Tenta extrair mensagem JSON; se falhar, usa o texto bruto
       try {
         const json = JSON.parse(textoResposta);
         erroAPI = json?.detail ?? json?.error ?? `Erro HTTP ${res.status}`;
@@ -228,15 +196,13 @@ export default async function CalcularPage({
         erroAPI = `Erro HTTP ${res.status} — ${textoResposta.slice(0, 2000)}`;
       }
       console.error(`[calcular] erro ${res.status}:`, erroAPI);
-      console.error("[calcular] resposta completa da API:", textoResposta);
     } else {
       try {
-        const json = JSON.parse(textoResposta);
-        console.log("[calcular] resposta da API (JSON):", JSON.stringify(json, null, 2));
-        resultado = json as ResultadoAPI;
+        resultado = JSON.parse(textoResposta) as ResultadoAPI;
+        console.log("[calcular] resposta da API (JSON):", JSON.stringify(resultado, null, 2));
       } catch (parseErr) {
         erroAPI = `A API retornou uma resposta inválida (não é JSON). Resposta: ${textoResposta.slice(0, 300)}`;
-        console.error("[calcular] falha ao parsear JSON:", parseErr, "| texto:", textoResposta);
+        console.error("[calcular] falha ao parsear JSON:", parseErr);
       }
     }
   } catch (err) {
@@ -244,58 +210,12 @@ export default async function CalcularPage({
     console.error("[calcular] erro de rede:", err);
   }
 
-  // Detecta qual campo tem o array de cálculos (calculos ou resultados)
-  const linhasCalculo: LinhaCalculo[] =
-    (resultado?.calculos as LinhaCalculo[] | undefined) ??
-    (resultado?.resultados as LinhaCalculo[] | undefined) ??
-    [];
-
-  // Chamadas renomeadas: CHAMADA_1 → ax, CHAMADA_2 → ay, CHAMADA_3 → axy
-  const chamadas = resultado
-    ? (["CHAMADA_1", "CHAMADA_2", "CHAMADA_3"] as const)
-        .filter((k) => k in resultado)
-        .map((k) => ({
-          label: LABEL_CHAMADA[k],
-          valor: extrairNumero(resultado[k]),
-          raw:   resultado[k],
-        }))
-    : [];
-
-  // Detecta chave do FORMULA_FINAL (pode ter variantes de nome)
-  const CHAVES_FORMULA = ["FORMULA_FINAL", "formula_final"];
-  const chaveFormula = resultado
-    ? CHAVES_FORMULA.find((k) => k in resultado) ?? null
-    : null;
-  const formulaFinalRaw = chaveFormula ? resultado![chaveFormula] : null;
-  const formulaFinalNum = extrairNumero(formulaFinalRaw);
-  const axyFinalNum = resultado?.axy_final != null ? Number(resultado.axy_final) : null;
-  const anuidade = axyFinalNum !== null ? axyFinalNum / 12 : null;
-
-  // Campos que têm exibição dedicada (chamadas, axy_final, formula, arrays)
-  const CAMPOS_RESERVADOS = new Set([
-    "axy_final", "formula", "calculos", "resultados",
-    "CHAMADA_1", "CHAMADA_2", "CHAMADA_3",
-    ...(chaveFormula ? [chaveFormula] : []),
-  ]);
-
-  // Campos escalares da API sem seção dedicada (ex: IDADE_*, DIFERENCA_IDADE)
-  const camposScalares = resultado
-    ? Object.entries(resultado).filter(([k, v]) => {
-        if (CAMPOS_RESERVADOS.has(k)) return false;
-        if (Array.isArray(v)) return false;
-        if (v !== null && typeof v === "object") return false;
-        return true;
-      })
-    : [];
-
-  // Lista ordenada: campos escalares → ax/ay/axy → ANUIDADE → FORMULA_FINAL
-  type LinhaDisplay = { label: string; valor: unknown };
-  const linhasExibicao: LinhaDisplay[] = [
-    ...camposScalares.map(([k, v]) => ({ label: k, valor: v })),
-    ...chamadas.filter((c) => c.valor !== null).map((c) => ({ label: c.label, valor: c.valor })),
-    ...(anuidade !== null ? [{ label: "ANUIDADE", valor: anuidade }] : []),
-    ...(formulaFinalRaw != null ? [{ label: chaveFormula!, valor: formulaFinalRaw }] : []),
-  ];
+  // ── Valores calculados ────────────────────────────────────────
+  const axVal  = resultado ? extrairNumero(resultado.CHAMADA_1) : null;
+  const ayVal  = resultado ? extrairNumero(resultado.CHAMADA_2) : null;
+  const axyVal = resultado ? extrairNumero(resultado.CHAMADA_3) : null;
+  const anuidade = resultado?.axy_final != null ? Number(resultado.axy_final) : null;
+  const anuidadeMensal = anuidade !== null ? anuidade / 12 : null;
 
   return (
     <div className="max-w-5xl mx-auto p-8 space-y-6">
@@ -320,42 +240,37 @@ export default async function CalcularPage({
         </div>
       </div>
 
-      {/* Dados do Participante */}
+      {/* Card participante + beneficiário */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">
-          Dados do Participante
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <InfoItem label="Nome"             value={c.name} />
-          <InfoItem label="Sexo"             value={c.sexo ?? ""} />
-          <InfoItem label="Data de Nascimento" value={isoParaBR(c.data_nascimento)} />
+        <div className={`grid gap-6 ${temBeneficiario ? "grid-cols-2" : "grid-cols-1"}`}>
+          <div>
+            <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-3">
+              Participante
+            </h3>
+            <div className="space-y-3">
+              <InfoItem label="Nome"               value={c.name} />
+              <InfoItem label="Sexo"               value={c.sexo ?? ""} />
+              <InfoItem label="Data de nascimento" value={isoParaBR(c.data_nascimento)} />
+              <InfoItem label="Idade na concessão" value={idadePart !== null ? `${idadePart} anos` : "—"} />
+            </div>
+          </div>
+
+          {temBeneficiario && (
+            <div>
+              <h3 className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-3">
+                Beneficiário
+              </h3>
+              <div className="space-y-3">
+                <InfoItem label="Nome"               value={c.nome_beneficiario ?? ""} />
+                <InfoItem label="Sexo"               value="FEMININO" />
+                <InfoItem label="Data de nascimento" value={isoParaBR(c.data_nasc_beneficiario)} />
+                <InfoItem label="Idade na concessão" value={idadeBen !== null ? `${idadeBen} anos` : "—"} />
+                <InfoItem label="Diferença de idade" value={diffIdade !== null ? `${diffIdade} anos` : "—"} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Dados do Beneficiário */}
-      {temBeneficiario && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">
-            Dados do Beneficiário
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <InfoItem label="Nome do Beneficiário"       value={c.nome_beneficiario ?? ""} />
-            <InfoItem label="Data de Nascimento"         value={isoParaBR(c.data_nasc_beneficiario)} />
-            <InfoItem label="Sexo do Beneficiário"       value="FEMININO" />
-            <InfoItem label="% Continuação"              value={c.percentual_continuacao ?? ""} />
-          </div>
-        </div>
-      )}
-
-      {/* Payload enviado */}
-      <details className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-        <summary className="text-xs font-medium text-gray-500 cursor-pointer select-none">
-          Parâmetros enviados à API
-        </summary>
-        <pre className="mt-3 text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
-          {JSON.stringify(payload, null, 2)}
-        </pre>
-      </details>
 
       {/* Erro da API */}
       {erroAPI && (
@@ -368,11 +283,9 @@ export default async function CalcularPage({
             </div>
           </div>
 
-          {/* Parâmetros enviados à API */}
           <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
             <div className="px-5 py-3 border-b border-red-100 bg-red-50">
-              <p className="text-sm font-semibold text-red-700">Parâmetros enviados à API (diagnóstico)</p>
-              <p className="text-xs text-red-500 mt-0.5">Verifique se algum campo está vazio ou com formato incorreto</p>
+              <p className="text-sm font-semibold text-red-700">Parâmetros enviados à API</p>
             </div>
             <table className="w-full text-sm">
               <tbody className="divide-y divide-gray-100">
@@ -394,97 +307,132 @@ export default async function CalcularPage({
               </tbody>
             </table>
           </div>
-
-          {/* Dados brutos do banco (antes da conversão) */}
-          <div className="bg-white rounded-xl border border-orange-200 overflow-hidden">
-            <div className="px-5 py-3 border-b border-orange-100 bg-orange-50">
-              <p className="text-sm font-semibold text-orange-700">Dados brutos do banco (antes da conversão)</p>
-              <p className="text-xs text-orange-500 mt-0.5">Valores originais salvos no Supabase — compare com os parâmetros acima</p>
-            </div>
-            <table className="w-full text-sm">
-              <tbody className="divide-y divide-gray-100">
-                {([
-                  ["data_nascimento (banco)",      c.data_nascimento],
-                  ["data_concessao (banco)",        c.data_concessao],
-                  ["sexo (banco)",                  c.sexo],
-                  ["percentual_continuacao (banco)",c.percentual_continuacao],
-                  ["data_nasc_beneficiario (banco)",c.data_nasc_beneficiario],
-                ] as [string, string | null][]).map(([label, val]) => (
-                  <tr key={label} className={!val ? "bg-amber-50" : "hover:bg-gray-50"}>
-                    <td className="px-5 py-3 font-medium text-gray-500 w-64 font-mono text-xs">{label}</td>
-                    <td className="px-5 py-3 font-mono text-xs">
-                      {!val
-                        ? <span className="text-amber-600 font-semibold">⚠ NULL no banco</span>
-                        : <span className="text-gray-900">{val}</span>
-                      }
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
       {/* Resultado */}
       {resultado && (
         <div className="space-y-5">
-          {/* axy_final em destaque */}
-          {resultado.axy_final !== undefined && (
-            <div className="bg-blue-600 text-white rounded-2xl p-6 flex items-center justify-between">
-              <div>
-                <p className="text-blue-200 text-sm font-medium">Resultado — axy_final</p>
-                <p className="text-4xl font-bold mt-1 tabular-nums">
-                  {Number(resultado.axy_final).toLocaleString("pt-BR", { maximumFractionDigits: 6 })}
-                </p>
-              </div>
-              <Calculator className="w-12 h-12 text-blue-300 flex-shrink-0" />
+          {/* Tabela de resultados: ax / ay / axy */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900">Parâmetros dos Cálculos</h2>
             </div>
-          )}
-
-          {/* Tabela de cálculos */}
-          {linhasCalculo.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-900">Detalhamento dos Cálculos</h2>
-              </div>
-              <TabelaCalculos linhas={linhasCalculo} />
-            </div>
-          )}
-
-          {/* Fórmula final */}
-          {resultado.formula && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-3">Fórmula Aplicada</h2>
-              <p className="text-sm font-mono bg-gray-50 rounded-lg px-4 py-3 text-gray-800 break-all">
-                {String(resultado.formula)}
-              </p>
-            </div>
-          )}
-
-          {/* Outros campos da API */}
-          {linhasExibicao.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-900">Outros campos da API</h2>
-              </div>
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-100">
+                    <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide w-48"></th>
+                    <th className="px-5 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">ax</th>
+                    <th className="px-5 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">ay</th>
+                    <th className="px-5 py-2.5 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">axy</th>
+                  </tr>
+                </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {linhasExibicao.map(({ label, valor }) => (
-                    <tr key={label} className="hover:bg-gray-50">
-                      <td className="px-5 py-3 font-medium text-gray-500 w-48">{label}</td>
-                      <td className="px-5 py-3 text-gray-900 tabular-nums font-mono text-xs">
-                        {typeof valor === "number"
-                          ? valor.toLocaleString("pt-BR", { maximumFractionDigits: 6 })
-                          : String(valor)}
-                      </td>
-                    </tr>
-                  ))}
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-5 py-3 text-xs font-medium text-gray-500">Tábua qx</td>
+                    <td className="px-5 py-3 text-center font-mono text-xs text-gray-700">{axParams.qx}</td>
+                    <td className="px-5 py-3 text-center font-mono text-xs text-gray-700">{ayParams.qx}</td>
+                    <td className="px-5 py-3 text-center font-mono text-xs text-gray-700">{axyParams.qx}</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-5 py-3 text-xs font-medium text-gray-500">Tábua qy</td>
+                    <td className="px-5 py-3 text-center font-mono text-xs text-gray-700">{axParams.qy}</td>
+                    <td className="px-5 py-3 text-center font-mono text-xs text-gray-700">{ayParams.qy}</td>
+                    <td className="px-5 py-3 text-center font-mono text-xs text-gray-700">{axyParams.qy}</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-5 py-3 text-xs font-medium text-gray-500">Idade</td>
+                    <td className="px-5 py-3 text-center tabular-nums text-gray-700">{axParams.idade ?? "—"}</td>
+                    <td className="px-5 py-3 text-center tabular-nums text-gray-700">{ayParams.idade ?? "—"}</td>
+                    <td className="px-5 py-3 text-center tabular-nums text-gray-700">{axyParams.idade ?? "—"}</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-5 py-3 text-xs font-medium text-gray-500">Diferença de idade</td>
+                    <td className="px-5 py-3 text-center tabular-nums text-gray-700">0</td>
+                    <td className="px-5 py-3 text-center tabular-nums text-gray-700">0</td>
+                    <td className="px-5 py-3 text-center tabular-nums text-gray-700">{axyParams.diff}</td>
+                  </tr>
+                  <tr className="bg-blue-50">
+                    <td className="px-5 py-3 text-xs font-semibold text-gray-700">Valor</td>
+                    <td className="px-5 py-3 text-center font-bold tabular-nums text-gray-900">
+                      {axVal !== null ? fmt(axVal) : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-center font-bold tabular-nums text-gray-900">
+                      {ayVal !== null ? fmt(ayVal) : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-center font-bold tabular-nums text-gray-900">
+                      {axyVal !== null ? fmt(axyVal) : "—"}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
+
+          {/* Card resultado final */}
+          <div className="bg-blue-600 text-white rounded-2xl p-6 space-y-4">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+              <div>
+                <span className="text-blue-200 text-xs">ax</span>
+                <p className="font-mono font-semibold">{axVal !== null ? fmt(axVal) : "—"}</p>
+              </div>
+              <div>
+                <span className="text-blue-200 text-xs">% continuação</span>
+                <p className="font-mono font-semibold">{(percentual * 100).toFixed(2)}%</p>
+              </div>
+              <div>
+                <span className="text-blue-200 text-xs">ay</span>
+                <p className="font-mono font-semibold">{ayVal !== null ? fmt(ayVal) : "—"}</p>
+              </div>
+              <div>
+                <span className="text-blue-200 text-xs">axy</span>
+                <p className="font-mono font-semibold">{axyVal !== null ? fmt(axyVal) : "—"}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-blue-500 pt-4 space-y-3">
+              <div>
+                <p className="text-blue-200 text-xs mb-1">
+                  Anuidade = ax + % × (ay − axy)
+                </p>
+                <p className="text-3xl font-bold tabular-nums">
+                  {anuidade !== null ? fmt(anuidade) : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-blue-200 text-xs mb-1">
+                  Anuidade mensal = anuidade ÷ 12
+                </p>
+                <p className="text-3xl font-bold tabular-nums">
+                  {anuidadeMensal !== null ? fmt(anuidadeMensal) : "—"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Debug */}
+          <details className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+            <summary className="text-xs font-medium text-gray-500 cursor-pointer select-none">
+              Debug — resposta completa da API
+            </summary>
+            <pre className="mt-3 text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
+              {JSON.stringify(resultado, null, 2)}
+            </pre>
+          </details>
         </div>
+      )}
+
+      {/* Debug payload (sempre visível como details) */}
+      {!resultado && !erroAPI && (
+        <details className="bg-gray-50 rounded-xl border border-gray-200 p-4">
+          <summary className="text-xs font-medium text-gray-500 cursor-pointer select-none">
+            Parâmetros enviados à API
+          </summary>
+          <pre className="mt-3 text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify(payload, null, 2)}
+          </pre>
+        </details>
       )}
     </div>
   );

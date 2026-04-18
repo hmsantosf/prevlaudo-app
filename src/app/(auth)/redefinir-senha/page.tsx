@@ -1,57 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, KeyRound, Eye, EyeOff, AlertCircle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
-type Estado = "carregando" | "pronto" | "salvando" | "sucesso" | "token_invalido";
+type Estado = "pronto" | "salvando" | "sucesso" | "token_invalido";
 
 export default function RedefinirSenhaPage() {
   const router = useRouter();
-  const [estado, setEstado] = useState<Estado>("carregando");
+  const [estado, setEstado] = useState<Estado>("pronto");
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmar, setMostrarConfirmar] = useState(false);
   const [erro, setErro] = useState("");
-
-  useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    const hashParams = new URLSearchParams(hash);
-    const searchParams = new URLSearchParams(window.location.search);
-
-    const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token");
-    const tokenHash = searchParams.get("token_hash");
-    const type = hashParams.get("type") || searchParams.get("type");
-
-    if (accessToken && refreshToken && type === "recovery") {
-      // Formato 1: hash com access_token
-      supabase.auth
-        .setSession({ access_token: accessToken, refresh_token: refreshToken })
-        .then(({ error }) => {
-          if (error) setEstado("token_invalido");
-          else setEstado("pronto");
-        });
-    } else if (tokenHash && type === "recovery") {
-      // Formato 2: token_hash via query param
-      console.log("[redefinir-senha] token_hash:", tokenHash, "type:", type);
-      supabase.auth
-        .verifyOtp({ token_hash: tokenHash, type: "recovery" })
-        .then(({ error }) => {
-          if (error) {
-            console.error("[redefinir-senha] verifyOtp error:", error.message);
-            setEstado("token_invalido");
-          } else {
-            setEstado("pronto");
-          }
-        });
-    } else {
-      setEstado("token_invalido");
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,29 +29,28 @@ export default function RedefinirSenhaPage() {
       return;
     }
 
-    setEstado("salvando");
-
-    const { error } = await supabase.auth.updateUser({ password: senha });
-
-    if (error) {
-      console.error("[redefinir-senha] Erro ao atualizar senha:", error.message);
-      setErro("Não foi possível atualizar a senha. Solicite um novo link de recuperação.");
-      setEstado("pronto");
+    const tokenHash = new URLSearchParams(window.location.search).get("token_hash");
+    if (!tokenHash) {
+      setEstado("token_invalido");
       return;
     }
 
-    await supabase.auth.signOut();
+    setEstado("salvando");
+
+    const res = await fetch("/api/auth/redefinir-senha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token_hash: tokenHash, password: senha }),
+    });
+
+    if (!res.ok) {
+      setErro("Token inválido ou expirado. Solicite um novo link.");
+      setEstado("token_invalido");
+      return;
+    }
+
     router.push("/login?senha_alterada=1");
   };
-
-  if (estado === "carregando") {
-    return (
-      <div className="flex flex-col items-center gap-3 py-4">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        <p className="text-sm text-gray-500">Validando link...</p>
-      </div>
-    );
-  }
 
   if (estado === "token_invalido") {
     return (

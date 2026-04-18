@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { enviarEmail, emailRecuperacaoSenha } from "@/lib/email";
 
-const SITE_URL = process.env.NEXTAUTH_URL ?? "https://prevaerus.com.br";
-
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -20,9 +18,9 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin().auth.admin.generateLink({
     type: "recovery",
-    email,
+    email: email,
     options: {
-      redirectTo: `${SITE_URL}/redefinir-senha`,
+      redirectTo: "https://www.prevaerus.com.br/redefinir-senha",
     },
   });
 

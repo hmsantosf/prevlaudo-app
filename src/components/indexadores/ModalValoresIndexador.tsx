@@ -77,10 +77,10 @@ function formatarTaxa(taxa: number | null): string {
 
 function formatTaxaParaCopia(taxa: number | null): string {
   if (taxa === null || taxa === undefined) return "";
-  return (taxa * 100).toLocaleString("pt-BR", {
+  return taxa.toLocaleString("pt-BR", {
     minimumFractionDigits: 6,
     maximumFractionDigits: 6,
-  });
+  }) + "%";
 }
 
 export default function ModalValoresIndexador({ indexadorId, indexadorNome, indexadorSigla, casasDecimais, onFechar }: Props) {

@@ -318,38 +318,9 @@ export default async function CalcularPage({
         </div>
       </div>
 
-      {/* 3 blocos lado a lado */}
+      {/* Linha 1: cabeçalho + idades dos 3 blocos */}
       <div className="grid grid-cols-3 gap-4">
-
-        {/* Bloco 1 — completo, sempre visível */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
-            <h3 className="text-sm font-semibold text-blue-700">{blocos[0].label}</h3>
-          </div>
-          <div className="divide-y divide-gray-100">
-            <Row label="Idade participante" value={blocos[0].idadePart !== null ? `${blocos[0].idadePart} anos` : "—"} />
-            {temBeneficiario && (
-              <>
-                <Row label="Idade beneficiário" value={blocos[0].idadeBen !== null ? `${blocos[0].idadeBen} anos` : "—"} />
-                <Row label="Diferença de idade" value={blocos[0].diffIdade !== null ? `${blocos[0].diffIdade} anos` : "—"} />
-              </>
-            )}
-            <RowWithParams label="ax"  value={fmt6(blocos[0].ax)}  chamada={blocos[0].axChamada} />
-            {temBeneficiario && (
-              <>
-                <RowWithParams label="ay"  value={fmt6(blocos[0].ay)}  chamada={blocos[0].ayChamada} />
-                <RowWithParams label="axy" value={fmt6(blocos[0].axy)} chamada={blocos[0].axyChamada} />
-              </>
-            )}
-            <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
-              <Row label="Anuidade"        value={fmt6(blocos[0].anuidade)}        bold />
-              <Row label="Anuidade mensal" value={fmt6(blocos[0].anuidadeMensal)} bold />
-            </div>
-          </div>
-        </div>
-
-        {/* Partes superiores dos blocos 2 e 3 — sempre visíveis */}
-        {blocos.slice(1).map((bloco) => (
+        {blocos.map((bloco) => (
           <div key={bloco.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
               <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
@@ -365,11 +336,32 @@ export default async function CalcularPage({
             </div>
           </div>
         ))}
+      </div>
 
-        {/* Partes inferiores dos blocos 2 e 3 — cobertas pela tarja */}
-        <div className="col-start-2 col-span-2 relative">
+      {/* Linha 2: ax/ay/axy/anuidade — bloco 1 visível, blocos 2+3 com tarja */}
+      <div className="grid grid-cols-3 gap-4">
+
+        {/* Bloco 1 — sempre visível */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="divide-y divide-gray-100">
+            <RowWithParams label="ax"  value={fmt6(blocos[0].ax)}  chamada={blocos[0].axChamada} />
+            {temBeneficiario && (
+              <>
+                <RowWithParams label="ay"  value={fmt6(blocos[0].ay)}  chamada={blocos[0].ayChamada} />
+                <RowWithParams label="axy" value={fmt6(blocos[0].axy)} chamada={blocos[0].axyChamada} />
+              </>
+            )}
+            <div className="bg-gray-50 divide-y divide-gray-100">
+              <Row label="Anuidade"        value={fmt6(blocos[0].anuidade)}        bold />
+              <Row label="Anuidade mensal" value={fmt6(blocos[0].anuidadeMensal)} bold />
+            </div>
+          </div>
+        </div>
+
+        {/* Blocos 2 e 3 — cobertos pela tarja */}
+        <div className="col-span-2 relative">
           <div className="grid grid-cols-2 gap-4">
-            {blocos.slice(1).map((bloco) => (
+            {[blocos[1], blocos[2]].map((bloco) => (
               <div key={bloco.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="divide-y divide-gray-100">
                   <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
@@ -379,7 +371,7 @@ export default async function CalcularPage({
                       <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
                     </>
                   )}
-                  <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
+                  <div className="bg-gray-50 divide-y divide-gray-100">
                     <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
                     <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
                   </div>
@@ -390,7 +382,7 @@ export default async function CalcularPage({
           <TarjaDetalhes
             processoId={id}
             creditosDisponiveis={creditos}
-            jaRevelado={jaRevelado}
+            jaRevelado={p.revelado ?? false}
           />
         </div>
 

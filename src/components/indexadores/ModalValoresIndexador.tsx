@@ -35,18 +35,17 @@ function mesParaISO(mes: string): string {
 function parseBRNumber(str: string): number {
   if (!str) return 0;
   const s = str.trim();
+
   if (s.includes(',')) {
-    // Formato BR: ponto = milhar, vírgula = decimal → "2.039,78" → 2039.78
-    return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
-  } else {
-    // Sem vírgula: se tem ponto e exatamente 3 dígitos depois = milhar sem decimal
-    // "2.039" → 2039; "2.55" → 2.55
-    const parts = s.split('.');
-    if (parts.length === 2 && parts[1].length === 3) {
-      return parseFloat(s.replace(/\./g, '')) || 0;
-    }
-    return parseFloat(s) || 0;
+    // Vírgula sempre é decimal no formato brasileiro
+    // Remove pontos de milhar, substitui vírgula por ponto decimal
+    const resultado = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return isNaN(resultado) ? 0 : resultado;
   }
+
+  // Sem vírgula: remove pontos (podem ser de milhar) e parseia
+  const resultado = parseFloat(s.replace(/\./g, ''));
+  return isNaN(resultado) ? 0 : resultado;
 }
 
 // Calcula taxa_mensal para cada linha (linhas devem estar em ordem ASC)

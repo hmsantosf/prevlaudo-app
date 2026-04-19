@@ -66,6 +66,10 @@ type ClienteDB = {
 
 type ChamadaAPI = {
   axy?: number;
+  tabua_qx?: unknown;
+  tabua_qy?: unknown;
+  dif?: unknown;
+  idade?: unknown;
   [key: string]: unknown;
 };
 
@@ -87,6 +91,9 @@ type Bloco = {
   axy: number | null;
   anuidade: number | null;
   anuidadeMensal: number | null;
+  axChamada: ChamadaAPI | null;
+  ayChamada: ChamadaAPI | null;
+  axyChamada: ChamadaAPI | null;
   raw: ResultadoAPI | null;
 };
 
@@ -103,12 +110,41 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   );
 }
 
+function fmtParams(c: ChamadaAPI | null): string | null {
+  if (!c) return null;
+  const { tabua_qx, tabua_qy, dif, idade } = c;
+  if (tabua_qx === undefined && tabua_qy === undefined && dif === undefined && idade === undefined) return null;
+  return `(${tabua_qx ?? "—"}; ${tabua_qy ?? "—"}; ${dif ?? "—"}; ${idade ?? "—"})`;
+}
+
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className="flex justify-between items-center px-4 py-2.5">
       <span className="text-xs text-gray-500">{label}</span>
       <span className={`text-xs font-mono tabular-nums ${bold ? "font-bold text-gray-900" : "text-gray-700"}`}>
         {value}
+      </span>
+    </div>
+  );
+}
+
+function RowWithParams({ label, value, chamada, bold }: {
+  label: string;
+  value: string;
+  chamada: ChamadaAPI | null;
+  bold?: boolean;
+}) {
+  const params = fmtParams(chamada);
+  return (
+    <div className="flex justify-between items-center px-4 py-2.5">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-right">
+        <span className={`text-xs font-mono tabular-nums ${bold ? "font-bold text-gray-900" : "text-gray-700"}`}>
+          {value}
+        </span>
+        {params && (
+          <span className="block text-[10px] text-gray-400 font-mono leading-tight">{params}</span>
+        )}
       </span>
     </div>
   );
@@ -193,12 +229,15 @@ export default async function CalcularPage({
     const idadePart = calcularIdade(c.data_nascimento, iso);
     const idadeBen  = calcularIdade(c.data_nasc_beneficiario, iso);
     const diffIdade = idadePart !== null && idadeBen !== null ? idadeBen - idadePart : null;
-    const ax  = res?.chamada_1?.axy ?? null;
-    const ay  = res?.chamada_2?.axy ?? null;
-    const axy = res?.chamada_3?.axy ?? null;
+    const axChamada  = res?.chamada_1 ?? null;
+    const ayChamada  = res?.chamada_2 ?? null;
+    const axyChamada = res?.chamada_3 ?? null;
+    const ax  = axChamada?.axy ?? null;
+    const ay  = ayChamada?.axy ?? null;
+    const axy = axyChamada?.axy ?? null;
     const anuidade = res?.axy_final ?? null;
     const anuidadeMensal = anuidade !== null ? anuidade / 12 : null;
-    return { label, idadePart, idadeBen, diffIdade, ax, ay, axy, anuidade, anuidadeMensal, raw: res };
+    return { label, idadePart, idadeBen, diffIdade, ax, ay, axy, anuidade, anuidadeMensal, axChamada, ayChamada, axyChamada, raw: res };
   });
 
   return (
@@ -272,12 +311,12 @@ export default async function CalcularPage({
                 </>
               )}
 
-              <Row label="ax"  value={fmt6(bloco.ax)} />
+              <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
 
               {temBeneficiario && (
                 <>
-                  <Row label="ay"  value={fmt6(bloco.ay)} />
-                  <Row label="axy" value={fmt6(bloco.axy)} />
+                  <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
+                  <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
                 </>
               )}
 

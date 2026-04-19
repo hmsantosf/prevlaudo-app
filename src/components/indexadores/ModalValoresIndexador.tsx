@@ -146,7 +146,13 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
   }, []);
 
   const copiarTudo = async () => {
-    const texto = linhas.map((l) => `${l.mes}\t${l.valorAcumulado}`).join("\n");
+    const texto = linhas.map((l, idx) => {
+      const taxa = taxas[idx];
+      const taxaStr = taxa !== null
+        ? taxa.toLocaleString("pt-BR", { minimumFractionDigits: 8, maximumFractionDigits: 8 })
+        : "";
+      return `${l.mes}\t${l.valorAcumulado}\t${taxaStr}`;
+    }).join("\n");
     await navigator.clipboard.writeText(texto);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);

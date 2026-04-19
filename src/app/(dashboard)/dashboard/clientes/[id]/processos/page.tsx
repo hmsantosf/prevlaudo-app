@@ -169,7 +169,16 @@ export default async function ClienteProcessosPage({
                   </td>
                   <td className="px-5 py-4 text-gray-500">{formatDate(p.created_at)}</td>
                   <td className="px-5 py-4">
-                    <CalcularButton processoId={p.id} />
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/processos/${p.id}/dados`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Ver dados
+                      </Link>
+                      <CalcularButton processoId={p.id} />
+                    </div>
                   </td>
                 </tr>
               ))}

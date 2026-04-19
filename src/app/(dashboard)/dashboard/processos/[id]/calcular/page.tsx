@@ -63,6 +63,18 @@ type ClienteDB = {
   data_nasc_beneficiario: string | null;
   percentual_continuacao: string | null;
   indenizacao_atualizada: string | null;
+  tipo_beneficio: string | null;
+  tipo_renda: string | null;
+};
+
+type ProcessoDB = {
+  id: string;
+  tipo: string | null;
+  status: string | null;
+  cliente_id: string | null;
+  revelado: boolean | null;
+  pdf_url: string | null;
+  clientes: ClienteDB | ClienteDB[] | null;
 };
 
 type ChamadaAPI = {
@@ -169,11 +181,12 @@ export default async function CalcularPage({
     admin
       .from("processos")
       .select(
-        `id, tipo, status, cliente_id, revelado,
+        `id, tipo, status, cliente_id, revelado, pdf_url,
          clientes(
            name, cpf, data_nascimento, data_concessao, sexo,
            nome_beneficiario, data_nasc_beneficiario,
-           percentual_continuacao, indenizacao_atualizada
+           percentual_continuacao, indenizacao_atualizada,
+           tipo_beneficio, tipo_renda
          )`
       )
       .eq("id", id)
@@ -188,8 +201,8 @@ export default async function CalcularPage({
 
   if (!processo) notFound();
 
-  const p = processo as any;
-  const c = p.clientes as ClienteDB;
+  const p = processo as unknown as ProcessoDB;
+  const c = (Array.isArray(p.clientes) ? p.clientes[0] : p.clientes) as ClienteDB;
   const creditos = (perfil as { creditos: number } | null)?.creditos ?? 0;
   const jaRevelado = p.revelado ?? false;
 
@@ -271,7 +284,7 @@ export default async function CalcularPage({
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Cálculo Atuarial</h1>
-          <p className="text-sm text-gray-500">{p.tipo}</p>
+          <p className="text-sm text-gray-500">{c?.tipo_beneficio ?? p.tipo}</p>
         </div>
       </div>
 

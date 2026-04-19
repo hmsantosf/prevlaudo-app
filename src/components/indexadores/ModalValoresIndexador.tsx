@@ -78,8 +78,8 @@ function formatarTaxa(taxa: number | null): string {
 function formatTaxaParaCopia(taxa: number | null): string {
   if (taxa === null || taxa === undefined) return "";
   return taxa.toLocaleString("pt-BR", {
-    minimumFractionDigits: 6,
-    maximumFractionDigits: 6,
+    minimumFractionDigits: 8,
+    maximumFractionDigits: 8,
   });
 }
 

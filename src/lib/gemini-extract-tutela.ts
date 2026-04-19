@@ -2,27 +2,19 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // ─────────────────────────────────────────────────────────────────
 // Interface de dados extraídos do Histórico de Tutela Antecipada
+// O PDF tem apenas duas colunas: Referência e Valor em R$
 // ─────────────────────────────────────────────────────────────────
 export interface PagamentoTutela {
-  competencia: string;      // MM/AAAA
-  dataPagamento: string;    // DD/MM/AAAA
-  valorBruto: string;
-  valorIr: string;
-  valorLiquido: string;
+  referencia: string; // ex: "FEV/2021"
+  valor: number;      // valor em R$
 }
 
 export interface DadosTutela {
-  // Identificação do credor
   nomeCredor: string;
   cpfCredor: string;
   matriculaAerus: string;
-  // Histórico de pagamentos
   pagamentos: PagamentoTutela[];
-  // Totais
-  totalBruto: string;
-  totalIr: string;
-  totalLiquido: string;
-  // Identificação do documento
+  totalValor: number;
   dataDocumento: string;
 }
 
@@ -30,6 +22,8 @@ export interface DadosTutela {
 // Prompt enviado ao Gemini
 // ─────────────────────────────────────────────────────────────────
 const PROMPT = `Analise este PDF que é um "Histórico de Pagamento de Rateio de Crédito / Tutela Antecipada União" da AERUS (previdência complementar brasileira).
+
+A tabela deste documento tem APENAS duas colunas: "Referência" (ex: FEV/2021) e "Valor em R$".
 
 Extraia os seguintes dados e retorne APENAS um JSON válido, sem markdown, sem código, sem explicação — somente o objeto JSON:
 
@@ -39,24 +33,20 @@ Extraia os seguintes dados e retorne APENAS um JSON válido, sem markdown, sem c
   "matricula_aerus": "número da matrícula AERUS",
   "pagamentos": [
     {
-      "competencia": "competência no formato MM/AAAA",
-      "data_pagamento": "data de pagamento no formato DD/MM/AAAA",
-      "valor_bruto": "valor bruto numérico como string, ex: 1234.56",
-      "valor_ir": "valor do IR retido como string, ex: 123.45",
-      "valor_liquido": "valor líquido pago como string, ex: 1111.11"
+      "referencia": "referência no formato MMM/AAAA, ex: FEV/2021",
+      "valor": 1234.56
     }
   ],
-  "total_bruto": "total bruto como string numérica",
-  "total_ir": "total IR retido como string numérica",
-  "total_liquido": "total líquido como string numérica",
+  "total_valor": 99999.99,
   "data_documento": "data do documento no formato DD/MM/AAAA se presente"
 }
 
 Importante:
-- Extraia TODOS os registros da tabela de pagamentos, na ordem que aparecem no documento
-- Para valores monetários, use ponto como separador decimal (ex: "1234.56"), sem símbolos de moeda
-- Se um campo não existir no documento, use string vazia ""
-- Para o array de pagamentos, se não houver registros, retorne array vazio []
+- Extraia TODOS os registros da tabela, na ordem que aparecem no documento
+- Os valores numéricos devem ser números JSON (não strings), usando ponto como separador decimal
+- Não invente colunas que não existem no documento (não há IR, data de pagamento, valor líquido, etc.)
+- Se um campo de texto não existir, use string vazia ""
+- Se total_valor não aparecer, use 0
 - Retorne SOMENTE o JSON, nada mais.`;
 
 // ─────────────────────────────────────────────────────────────────
@@ -95,10 +85,7 @@ export async function extrairDadosTutelaComGemini(
 
   const result = await model.generateContent([
     {
-      inlineData: {
-        mimeType: "application/pdf",
-        data: base64,
-      },
+      inlineData: { mimeType: "application/pdf", data: base64 },
     },
     PROMPT,
   ]);
@@ -110,11 +97,8 @@ export async function extrairDadosTutelaComGemini(
 
   const pagamentosRaw = Array.isArray(json.pagamentos) ? json.pagamentos : [];
   const pagamentos: PagamentoTutela[] = pagamentosRaw.map((p: Record<string, unknown>) => ({
-    competencia:    String(p.competencia    ?? ""),
-    dataPagamento:  String(p.data_pagamento ?? ""),
-    valorBruto:     String(p.valor_bruto    ?? ""),
-    valorIr:        String(p.valor_ir       ?? ""),
-    valorLiquido:   String(p.valor_liquido  ?? ""),
+    referencia: String(p.referencia ?? ""),
+    valor: typeof p.valor === "number" ? p.valor : parseFloat(String(p.valor ?? "0")) || 0,
   }));
 
   const dados: DadosTutela = {
@@ -122,9 +106,7 @@ export async function extrairDadosTutelaComGemini(
     cpfCredor:     String(json.cpf_credor     ?? ""),
     matriculaAerus: String(json.matricula_aerus ?? ""),
     pagamentos,
-    totalBruto:    String(json.total_bruto    ?? ""),
-    totalIr:       String(json.total_ir       ?? ""),
-    totalLiquido:  String(json.total_liquido  ?? ""),
+    totalValor: typeof json.total_valor === "number" ? json.total_valor : parseFloat(String(json.total_valor ?? "0")) || 0,
     dataDocumento: String(json.data_documento ?? ""),
   };
 

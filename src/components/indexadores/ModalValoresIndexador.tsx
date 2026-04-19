@@ -5,7 +5,7 @@ import { X, Plus, Check, Loader2, Copy, Trash2 } from "lucide-react";
 
 type Linha = {
   mes: string;           // AAAA.MM display format
-  valorAcumulado: string; // raw string
+  valorAcumulado: number | string; // número quando vem do paste/API, string quando o usuário digita
 };
 
 type ValorAPI = {
@@ -53,6 +53,11 @@ function parseBRNumber(str: string): number {
   return isNaN(resultado) ? 0 : resultado;
 }
 
+function linhaParaNumero(valor: number | string): number {
+  if (typeof valor === 'number') return valor;
+  return parseBRNumber(String(valor));
+}
+
 // Calcula taxa_mensal para cada linha (linhas devem estar em ordem ASC)
 function calcularTaxas(linhas: Linha[]): (number | null)[] {
   const sorted = linhas
@@ -61,8 +66,8 @@ function calcularTaxas(linhas: Linha[]): (number | null)[] {
 
   const taxasOrdenadas: (number | null)[] = sorted.map((l, i) => {
     if (i === 0) return null;
-    const atual = parseBRNumber(sorted[i].valorAcumulado);
-    const anterior = parseBRNumber(sorted[i - 1].valorAcumulado);
+    const atual = linhaParaNumero(sorted[i].valorAcumulado);
+    const anterior = linhaParaNumero(sorted[i - 1].valorAcumulado);
     if (isNaN(atual) || isNaN(anterior) || anterior === 0) return null;
     return (atual / anterior - 1);
   });
@@ -103,10 +108,7 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
           // API returns DESC, reverse to ASC for display
           const novas = [...data].reverse().map((v) => ({
             mes: isoParaMes(v.mes),
-            valorAcumulado: v.valor_acumulado.toLocaleString("pt-BR", {
-              minimumFractionDigits: casasDecimais,
-              maximumFractionDigits: casasDecimais,
-            }),
+            valorAcumulado: v.valor_acumulado, // armazena como número
           }));
           setLinhas(novas);
         }
@@ -140,9 +142,8 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
       const mes = partes[0]?.trim() ?? "";
       const rawVal = partes[1]?.trim() ?? "";
       console.log('[handlePaste] linha bruta:', JSON.stringify(linha), '| mes:', mes, '| rawVal:', rawVal);
-      // Armazena o valor já normalizado para ponto decimal
-      const val = rawVal ? String(parseBRNumber(rawVal)) : "";
-      return { mes, valorAcumulado: val };
+      const numVal = rawVal ? parseBRNumber(rawVal) : 0;
+      return { mes, valorAcumulado: numVal }; // armazena como número
     });
 
     if (novasLinhas.length === 0) return;
@@ -160,7 +161,9 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
 
   const copiarTudo = async () => {
     const texto = linhas.map((l, idx) => {
-      return `${l.mes}\t${l.valorAcumulado}\t${formatTaxaParaCopia(taxas[idx])}`;
+      const num = linhaParaNumero(l.valorAcumulado);
+      const valFormatado = num.toLocaleString("pt-BR", { minimumFractionDigits: casasDecimais, maximumFractionDigits: casasDecimais });
+      return `${l.mes}\t${valFormatado}\t${formatTaxaParaCopia(taxas[idx])}`;
     }).join("\n");
     await navigator.clipboard.writeText(texto);
     setCopiado(true);
@@ -169,10 +172,10 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
 
   const salvar = async () => {
     const valoresParaSalvar = linhas
-      .filter((l) => l.mes.trim() && l.valorAcumulado.trim())
+      .filter((l) => l.mes.trim() && l.valorAcumulado !== "")
       .map((l) => ({
         mes: mesParaISO(l.mes),
-        valor_acumulado: parseBRNumber(l.valorAcumulado),
+        valor_acumulado: linhaParaNumero(l.valorAcumulado),
       }));
 
     if (valoresParaSalvar.length === 0) {
@@ -275,7 +278,9 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
                         type="text"
                         inputMode="decimal"
                         placeholder="0.0000"
-                        value={linha.valorAcumulado}
+                        value={typeof linha.valorAcumulado === 'number'
+                          ? linha.valorAcumulado.toLocaleString("pt-BR", { minimumFractionDigits: casasDecimais, maximumFractionDigits: casasDecimais })
+                          : linha.valorAcumulado}
                         onChange={(e) => atualizarLinha(idx, "valorAcumulado", e.target.value)}
                         className="w-full px-2 py-[3px] bg-transparent focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 focus:bg-blue-50 group-hover:bg-gray-50 tabular-nums"
                       />

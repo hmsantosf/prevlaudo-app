@@ -9,6 +9,13 @@ export const metadata: Metadata = {
   title: "Dados do Relatório | PrevLaudo",
 };
 
+function isoParaBR(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div>
@@ -60,6 +67,15 @@ export default async function DadosPage({
 
   const clienteId = processo.cliente_id as string;
 
+  let pdfSignedUrl: string | null = null;
+  if (processo.pdf_url) {
+    const { data: signedData } = await supabaseAdmin()
+      .storage
+      .from("processos")
+      .createSignedUrl(processo.pdf_url, 3600);
+    pdfSignedUrl = signedData?.signedUrl ?? null;
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-8 space-y-6">
       {/* Voltar */}
@@ -83,9 +99,9 @@ export default async function DadosPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {processo.pdf_url && (
+          {pdfSignedUrl && (
             <a
-              href={processo.pdf_url as string}
+              href={pdfSignedUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
@@ -108,7 +124,7 @@ export default async function DadosPage({
       <Section title="Dados do Credor">
         <Field label="Nome" value={c.name} />
         <Field label="CPF" value={c.cpf} />
-        <Field label="Data de Nascimento" value={c.data_nascimento} />
+        <Field label="Data de Nascimento" value={isoParaBR(c.data_nascimento)} />
         <Field label="Sexo" value={c.sexo} />
         <Field label="Matrícula AERUS" value={c.matricula_aerus} />
         <Field label="Matrícula Funcional" value={c.matricula_funcional} />
@@ -116,7 +132,7 @@ export default async function DadosPage({
 
       {/* Dados do Benefício */}
       <Section title="Dados do Benefício">
-        <Field label="Data de Concessão" value={c.data_concessao} />
+        <Field label="Data de Concessão" value={isoParaBR(c.data_concessao)} />
         <Field label="Tipo de Benefício" value={c.tipo_beneficio} />
         <Field label="Tipo de Renda" value={c.tipo_renda} />
         <Field label="% Continuação" value={c.percentual_continuacao} />
@@ -137,7 +153,7 @@ export default async function DadosPage({
       <Section title="Dados do Beneficiário">
         <Field label="Nome" value={c.nome_beneficiario} />
         <Field label="CPF" value={c.cpf_beneficiario} />
-        <Field label="Data de Nascimento" value={c.data_nasc_beneficiario} />
+        <Field label="Data de Nascimento" value={isoParaBR(c.data_nasc_beneficiario)} />
       </Section>
     </div>
   );

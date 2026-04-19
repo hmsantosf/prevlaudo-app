@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Settings, Users, Ticket, Table2, ChevronRight } from "lucide-react";
+import { Settings, Users, Ticket, Table2, TrendingUp, ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -24,6 +24,12 @@ const cards = [
     icon: Table2,
     label: "Tábuas",
     descricao: "Gerencie as tábuas atuariais disponíveis na plataforma.",
+  },
+  {
+    href: "/dashboard/configuracoes/indexadores",
+    icon: TrendingUp,
+    label: "Indexadores",
+    descricao: "Gerencie os indexadores econômicos disponíveis na plataforma.",
   },
 ];
 

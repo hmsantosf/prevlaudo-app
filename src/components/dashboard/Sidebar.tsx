@@ -14,6 +14,7 @@ import {
   UserCog,
   Tag,
   Table2,
+  TrendingUp,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -32,6 +33,7 @@ const configSubmenu = [
   { href: "/dashboard/configuracoes/usuarios", label: "Usuários", icon: UserCog },
   { href: "/dashboard/configuracoes/cupons", label: "Cupons", icon: Tag },
   { href: "/dashboard/configuracoes/tabuas", label: "Tábuas", icon: Table2 },
+  { href: "/dashboard/configuracoes/indexadores", label: "Indexadores", icon: TrendingUp },
 ];
 
 export default function Sidebar({ userName, userEmail, userCategoria }: Props) {

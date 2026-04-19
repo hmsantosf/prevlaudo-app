@@ -31,9 +31,21 @@ function mesParaISO(mes: string): string {
   return mes.replace(".", "-") + "-01";
 }
 
-function parsearValor(s: string): number {
-  const v = parseFloat(s.trim().replace(",", "."));
-  return isNaN(v) ? 0 : v;
+function parseBRNumber(str: string): number {
+  if (!str) return 0;
+  const s = str.trim();
+  if (s.includes(',')) {
+    // Formato BR: ponto = milhar, vírgula = decimal → "2.039,78" → 2039.78
+    return parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+  } else {
+    // Sem vírgula: se tem ponto e exatamente 3 dígitos depois = milhar sem decimal
+    // "2.039" → 2039; "2.55" → 2.55
+    const parts = s.split('.');
+    if (parts.length === 2 && parts[1].length === 3) {
+      return parseFloat(s.replace(/\./g, '')) || 0;
+    }
+    return parseFloat(s) || 0;
+  }
 }
 
 // Calcula taxa_mensal para cada linha (linhas devem estar em ordem ASC)
@@ -44,8 +56,8 @@ function calcularTaxas(linhas: Linha[]): (number | null)[] {
 
   const taxasOrdenadas: (number | null)[] = sorted.map((l, i) => {
     if (i === 0) return null;
-    const atual = parsearValor(sorted[i].valorAcumulado);
-    const anterior = parsearValor(sorted[i - 1].valorAcumulado);
+    const atual = parseBRNumber(sorted[i].valorAcumulado);
+    const anterior = parseBRNumber(sorted[i - 1].valorAcumulado);
     if (isNaN(atual) || isNaN(anterior) || anterior === 0) return null;
     return (atual / anterior - 1) * 100;
   });
@@ -110,7 +122,9 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
     const novasLinhas: Linha[] = linhasColadas.map((linha) => {
       const partes = linha.split("\t");
       const mes = partes[0]?.trim() ?? "";
-      const val = (partes[1]?.trim() ?? "").replace(",", ".");
+      const rawVal = partes[1]?.trim() ?? "";
+      // Armazena o valor já normalizado para ponto decimal
+      const val = rawVal ? String(parseBRNumber(rawVal)) : "";
       return { mes, valorAcumulado: val };
     });
 
@@ -139,7 +153,7 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
       .filter((l) => l.mes.trim() && l.valorAcumulado.trim())
       .map((l) => ({
         mes: mesParaISO(l.mes),
-        valor_acumulado: parsearValor(l.valorAcumulado),
+        valor_acumulado: parseBRNumber(l.valorAcumulado),
       }));
 
     if (valoresParaSalvar.length === 0) {

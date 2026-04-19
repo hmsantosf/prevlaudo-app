@@ -80,7 +80,7 @@ function formatTaxaParaCopia(taxa: number | null): string {
   return taxa.toLocaleString("pt-BR", {
     minimumFractionDigits: 6,
     maximumFractionDigits: 6,
-  }) + "%";
+  });
 }
 
 export default function ModalValoresIndexador({ indexadorId, indexadorNome, indexadorSigla, casasDecimais, onFechar }: Props) {

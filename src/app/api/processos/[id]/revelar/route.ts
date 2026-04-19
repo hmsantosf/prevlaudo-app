@@ -56,7 +56,7 @@ export async function POST(
   // ── Marcar processo como revelado ─────────────────────────────
   const { error: errProcesso } = await admin
     .from("processos")
-    .update({ revelado: true })
+    .update({ revelado: true, status: "calculado" })
     .eq("id", id)
     .eq("user_id", userId);
 

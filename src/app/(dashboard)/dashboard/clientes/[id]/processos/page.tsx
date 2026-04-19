@@ -29,6 +29,11 @@ const STATUS_MAP: Record<string, { label: string; color: string; icon: React.Rea
     color: "bg-blue-100 text-blue-700",
     icon: <Search className="w-3.5 h-3.5" />,
   },
+  calculado: {
+    label: "Calculado",
+    color: "bg-green-100 text-green-700",
+    icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+  },
   concluido: {
     label: "Concluído",
     color: "bg-green-100 text-green-700",

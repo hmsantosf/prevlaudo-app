@@ -60,7 +60,7 @@ function calcularTaxas(linhas: Linha[]): (number | null)[] {
     const atual = parseBRNumber(sorted[i].valorAcumulado);
     const anterior = parseBRNumber(sorted[i - 1].valorAcumulado);
     if (isNaN(atual) || isNaN(anterior) || anterior === 0) return null;
-    return (atual / anterior - 1) * 100;
+    return (atual / anterior - 1);
   });
 
   const result: (number | null)[] = new Array(linhas.length).fill(null);
@@ -72,7 +72,15 @@ function calcularTaxas(linhas: Linha[]): (number | null)[] {
 
 function formatarTaxa(taxa: number | null): string {
   if (taxa === null) return "—";
-  return taxa.toFixed(4) + "%";
+  return (taxa * 100).toFixed(4) + "%";
+}
+
+function formatTaxaParaCopia(taxa: number | null): string {
+  if (taxa === null || taxa === undefined) return "";
+  return (taxa * 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 6,
+    maximumFractionDigits: 6,
+  });
 }
 
 export default function ModalValoresIndexador({ indexadorId, indexadorNome, indexadorSigla, casasDecimais, onFechar }: Props) {
@@ -147,11 +155,7 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
 
   const copiarTudo = async () => {
     const texto = linhas.map((l, idx) => {
-      const taxa = taxas[idx];
-      const taxaStr = taxa !== null
-        ? taxa.toLocaleString("pt-BR", { minimumFractionDigits: 8, maximumFractionDigits: 8 })
-        : "";
-      return `${l.mes}\t${l.valorAcumulado}\t${taxaStr}`;
+      return `${l.mes}\t${l.valorAcumulado}\t${formatTaxaParaCopia(taxas[idx])}`;
     }).join("\n");
     await navigator.clipboard.writeText(texto);
     setCopiado(true);

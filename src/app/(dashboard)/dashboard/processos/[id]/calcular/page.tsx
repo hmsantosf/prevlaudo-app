@@ -319,46 +319,92 @@ export default async function CalcularPage({
       </div>
 
       {/* 3 blocos lado a lado */}
-      <div className="relative">
-        <div className="grid grid-cols-3 gap-4 select-none">
-        {blocos.map((bloco) => (
-          <div key={bloco.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
-              <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
-            </div>
+      <div className="grid grid-cols-3 gap-4">
 
-            <div className="divide-y divide-gray-100">
-              <Row label="Idade participante" value={bloco.idadePart !== null ? `${bloco.idadePart} anos` : "—"} />
-
-              {temBeneficiario && (
-                <>
-                  <Row label="Idade beneficiário" value={bloco.idadeBen !== null ? `${bloco.idadeBen} anos` : "—"} />
-                  <Row label="Diferença de idade" value={bloco.diffIdade !== null ? `${bloco.diffIdade} anos` : "—"} />
-                </>
-              )}
-
-              <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
-
-              {temBeneficiario && (
-                <>
-                  <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
-                  <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
-                </>
-              )}
-
-              <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
-                <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
-                <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
+        {/* Bloco 1 — sempre visível completo */}
+        {(() => {
+          const bloco = blocos[0];
+          return (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+                <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
+              </div>
+              <div className="divide-y divide-gray-100">
+                <Row label="Idade participante" value={bloco.idadePart !== null ? `${bloco.idadePart} anos` : "—"} />
+                {temBeneficiario && (
+                  <>
+                    <Row label="Idade beneficiário" value={bloco.idadeBen !== null ? `${bloco.idadeBen} anos` : "—"} />
+                    <Row label="Diferença de idade" value={bloco.diffIdade !== null ? `${bloco.diffIdade} anos` : "—"} />
+                  </>
+                )}
+                <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
+                {temBeneficiario && (
+                  <>
+                    <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
+                    <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
+                  </>
+                )}
+                <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
+                  <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
+                  <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
+                </div>
               </div>
             </div>
+          );
+        })()}
+
+        {/* Blocos 2 e 3 — parte superior sempre visível, parte inferior com tarja */}
+        <div className="col-span-2 flex flex-col">
+
+          {/* Partes superiores: header + idades */}
+          <div className="grid grid-cols-2 gap-4">
+            {blocos.slice(1).map((bloco) => (
+              <div key={bloco.label} className="bg-white rounded-t-xl border border-gray-200 border-b-0 overflow-hidden">
+                <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+                  <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  <Row label="Idade participante" value={bloco.idadePart !== null ? `${bloco.idadePart} anos` : "—"} />
+                  {temBeneficiario && (
+                    <>
+                      <Row label="Idade beneficiário" value={bloco.idadeBen !== null ? `${bloco.idadeBen} anos` : "—"} />
+                      <Row label="Diferença de idade" value={bloco.diffIdade !== null ? `${bloco.diffIdade} anos` : "—"} />
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+
+          {/* Partes inferiores: ax, ay, axy, anuidade — com tarja */}
+          <div className="relative">
+            <div className="grid grid-cols-2 gap-4">
+              {blocos.slice(1).map((bloco) => (
+                <div key={bloco.label} className="bg-white rounded-b-xl border border-gray-200 border-t-0 overflow-hidden">
+                  <div className="divide-y divide-gray-100">
+                    <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
+                    {temBeneficiario && (
+                      <>
+                        <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
+                        <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
+                      </>
+                    )}
+                    <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
+                      <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
+                      <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <TarjaDetalhes
+              processoId={id}
+              creditosDisponiveis={creditos}
+              jaRevelado={jaRevelado}
+            />
+          </div>
+
         </div>
-        <TarjaDetalhes
-          processoId={id}
-          creditosDisponiveis={creditos}
-          jaRevelado={jaRevelado}
-        />
       </div>
     </div>
   );

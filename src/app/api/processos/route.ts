@@ -30,6 +30,8 @@ const processoSchema = z.object({
   percentualContinuacao: z.string(),
   // Armazenamento
   pdf_url:               z.string().optional(),
+  pdf_tutela_url:        z.string().optional(),
+  dados_tutela:          z.any().optional(),
 });
 
 /**
@@ -162,7 +164,9 @@ export async function POST(request: NextRequest) {
       status:         "pendente",
       data_relatorio: dados.dataRelatorio || null,
       dados_aerus:    dados,
-      pdf_url:        dados.pdf_url ?? null,
+      pdf_url:        dados.pdf_url        ?? null,
+      pdf_tutela_url: dados.pdf_tutela_url ?? null,
+      dados_tutela:   dados.dados_tutela   ?? null,
     })
     .select("id")
     .single();

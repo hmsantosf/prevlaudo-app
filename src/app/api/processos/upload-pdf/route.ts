@@ -17,8 +17,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "PDF não enviado" }, { status: 400 });
   }
 
+  const tipo = (formData.get("tipo") as string | null) ?? "concessao";
   const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9\-_]/g, "_");
-  const path = `${session.user.id}/${sanitize(cpfCredor)}/${sanitize(dataRelatorio)}.pdf`;
+  const path = tipo === "tutela"
+    ? `${session.user.id}/${sanitize(cpfCredor)}/tutela.pdf`
+    : `${session.user.id}/${sanitize(cpfCredor)}/${sanitize(dataRelatorio)}.pdf`;
 
   const bytes = await pdf.arrayBuffer();
   const buffer = Buffer.from(bytes);

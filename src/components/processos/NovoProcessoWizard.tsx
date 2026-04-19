@@ -8,11 +8,13 @@ import Step1Upload from "./Step1Upload";
 import Step2Confirmacao from "./Step2Confirmacao";
 import PdfViewer from "./PdfViewer";
 import type { DadosAerus } from "@/lib/gemini-extract";
+import type { DadosTutela } from "@/lib/gemini-extract-tutela";
 
 type Etapa = 1 | 2;
+type PdfAtivo = "concessao" | "tutela";
 
 const etapas = [
-  { numero: 1, label: "Upload do documento" },
+  { numero: 1, label: "Upload dos documentos" },
   { numero: 2, label: "Confirmar dados" },
 ];
 
@@ -60,13 +62,21 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
   const router = useRouter();
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [dados, setDados] = useState<DadosAerus | null>(null);
+  const [dadosTutela, setDadosTutela] = useState<DadosTutela | null>(null);
   const [erroGlobal, setErroGlobal] = useState("");
   const [isDuplicata, setIsDuplicata] = useState(false);
 
-  // PDF state
+  // PDF state — concessão
   const [arquivoPdf, setArquivoPdf] = useState<File | null>(null);
   const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
   const [termoBusca, setTermoBusca] = useState("");
+
+  // PDF state — tutela
+  const [arquivoTutela, setArquivoTutela] = useState<File | null>(null);
+  const [pdfTutelaObjectUrl, setPdfTutelaObjectUrl] = useState<string | null>(null);
+
+  // Qual PDF está ativo no painel esquerdo
+  const [pdfAtivo, setPdfAtivo] = useState<PdfAtivo>("concessao");
 
   // Split panel state
   const [leftPct, setLeftPct] = useState(45);
@@ -80,6 +90,13 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     setPdfObjectUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [arquivoPdf]);
+
+  useEffect(() => {
+    if (!arquivoTutela) { setPdfTutelaObjectUrl(null); return; }
+    const url = URL.createObjectURL(arquivoTutela);
+    setPdfTutelaObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [arquivoTutela]);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
@@ -97,51 +114,85 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     };
   }, []);
 
-  const extrairDados = async (arquivo: File) => {
+  const extrairDados = async (arquivoConcessao: File, arquivoTut: File) => {
     setErroGlobal("");
-    setArquivoPdf(arquivo);
-    const form = new FormData();
-    form.append("pdf", arquivo);
+    setArquivoPdf(arquivoConcessao);
+    setArquivoTutela(arquivoTut);
 
-    const res = await fetch("/api/processos/extrair", {
-      method: "POST",
-      body: form,
-    });
+    const formConcessao = new FormData();
+    formConcessao.append("pdf", arquivoConcessao);
 
-    const json = await res.json();
+    const formTut = new FormData();
+    formTut.append("pdf", arquivoTut);
 
-    if (!res.ok) {
-      throw new Error(json.error ?? "Erro ao extrair dados do PDF");
+    const [resConcessao, resTutela] = await Promise.all([
+      fetch("/api/processos/extrair", { method: "POST", body: formConcessao }),
+      fetch("/api/processos/extrair-tutela", { method: "POST", body: formTut }),
+    ]);
+
+    const [jsonConcessao, jsonTutela] = await Promise.all([
+      resConcessao.json(),
+      resTutela.json(),
+    ]);
+
+    if (!resConcessao.ok) {
+      throw new Error(jsonConcessao.error ?? "Erro ao extrair Relatório de Concessão");
+    }
+    if (!resTutela.ok) {
+      throw new Error(jsonTutela.error ?? "Erro ao extrair Histórico de Tutela");
     }
 
-    setDados(json.dados as DadosAerus);
+    setDados(jsonConcessao.dados as DadosAerus);
+    setDadosTutela(jsonTutela.dados as DadosTutela);
     setEtapa(2);
   };
 
-  const salvar = async (dadosForm: DadosAerus) => {
+  const salvar = async (dadosConcessao: DadosAerus, dadosTutelaForm: DadosTutela) => {
     setErroGlobal("");
     setIsDuplicata(false);
 
+    // Upload dos dois PDFs em paralelo
     let pdfUrl: string | undefined;
+    let pdfTutelaUrl: string | undefined;
+
+    const uploads: Promise<void>[] = [];
+
     if (arquivoPdf) {
       const form = new FormData();
       form.append("pdf", arquivoPdf);
-      form.append("cpfCredor", dadosForm.cpfCredor ?? "");
-      form.append("dataRelatorio", dadosForm.dataRelatorio ?? "");
-      const uploadRes = await fetch("/api/processos/upload-pdf", {
-        method: "POST",
-        body: form,
-      });
-      if (uploadRes.ok) {
-        const { path } = await uploadRes.json();
-        pdfUrl = path as string;
-      }
+      form.append("cpfCredor", dadosConcessao.cpfCredor ?? "");
+      form.append("dataRelatorio", dadosConcessao.dataRelatorio ?? "");
+      uploads.push(
+        fetch("/api/processos/upload-pdf", { method: "POST", body: form })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => { if (data?.path) pdfUrl = data.path as string; })
+      );
     }
+
+    if (arquivoTutela) {
+      const form = new FormData();
+      form.append("pdf", arquivoTutela);
+      form.append("cpfCredor", dadosConcessao.cpfCredor ?? "");
+      form.append("dataRelatorio", dadosConcessao.dataRelatorio ?? "");
+      form.append("tipo", "tutela");
+      uploads.push(
+        fetch("/api/processos/upload-pdf", { method: "POST", body: form })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => { if (data?.path) pdfTutelaUrl = data.path as string; })
+      );
+    }
+
+    await Promise.all(uploads);
 
     const res = await fetch("/api/processos", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...dadosForm, pdf_url: pdfUrl }),
+      body: JSON.stringify({
+        ...dadosConcessao,
+        pdf_url:        pdfUrl,
+        pdf_tutela_url: pdfTutelaUrl,
+        dados_tutela:   dadosTutelaForm,
+      }),
     });
 
     const json = await res.json();
@@ -163,8 +214,10 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     router.refresh();
   };
 
+  const urlAtiva = pdfAtivo === "concessao" ? pdfObjectUrl : pdfTutelaObjectUrl;
+
   // ── Etapa 2: layout split full-width ────────────────────────────────────────
-  if (etapa === 2 && dados) {
+  if (etapa === 2 && dados && dadosTutela) {
     return (
       <div className="w-full flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
         {/* Step indicator + erro */}
@@ -190,19 +243,49 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
 
         {/* Split panels */}
         <div ref={containerRef} className="flex flex-1 overflow-hidden border-t border-gray-200 w-full">
-          {/* Painel esquerdo: visualizador de PDF */}
+
+          {/* Painel esquerdo: visualizador de PDF com abas */}
           {!collapsed && (
-            <div
-              style={{ width: `${leftPct}%` }}
-              className="flex-shrink-0 overflow-hidden"
-            >
-              {pdfObjectUrl ? (
-                <PdfViewer file={pdfObjectUrl} termoBusca={termoBusca} />
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400 text-sm" style={{ background: "#2b2b2b" }}>
-                  Carregando PDF…
-                </div>
-              )}
+            <div style={{ width: `${leftPct}%` }} className="flex-shrink-0 overflow-hidden flex flex-col">
+              {/* Abas */}
+              <div className="flex border-b border-gray-700 bg-gray-800 flex-shrink-0">
+                <button
+                  onClick={() => setPdfAtivo("concessao")}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    pdfAtivo === "concessao"
+                      ? "text-white border-b-2 border-blue-400"
+                      : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  Concessão
+                </button>
+                <button
+                  onClick={() => setPdfAtivo("tutela")}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    pdfAtivo === "tutela"
+                      ? "text-white border-b-2 border-blue-400"
+                      : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  Tutela
+                </button>
+              </div>
+              {/* Viewer */}
+              <div className="flex-1 overflow-hidden">
+                {urlAtiva ? (
+                  <PdfViewer
+                    file={urlAtiva}
+                    termoBusca={pdfAtivo === "concessao" ? termoBusca : ""}
+                  />
+                ) : (
+                  <div
+                    className="flex items-center justify-center h-full text-gray-400 text-sm"
+                    style={{ background: "#2b2b2b" }}
+                  >
+                    Carregando PDF…
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -210,12 +293,8 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
           <div className="relative flex-shrink-0 flex items-center select-none">
             <div
               className="w-1.5 h-full bg-gray-200 hover:bg-blue-300 cursor-col-resize transition-colors"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                draggingRef.current = true;
-              }}
+              onMouseDown={(e) => { e.preventDefault(); draggingRef.current = true; }}
             />
-            {/* Botão colapsar / expandir */}
             <button
               onClick={() => setCollapsed((c) => !c)}
               className="absolute z-10 w-6 h-10 bg-white border border-gray-200 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-50 transition"
@@ -233,7 +312,8 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
           {/* Painel direito: formulário */}
           <div className="flex-1 overflow-y-auto p-6 bg-white">
             <Step2Confirmacao
-              dados={dados}
+              dadosConcessao={dados}
+              dadosTutela={dadosTutela}
               onVoltar={() => setEtapa(1)}
               onSalvar={salvar}
               onCampoFoco={(valor) => setTermoBusca(valor)}

@@ -321,90 +321,79 @@ export default async function CalcularPage({
       {/* 3 blocos lado a lado */}
       <div className="grid grid-cols-3 gap-4">
 
-        {/* Bloco 1 — sempre visível completo */}
-        {(() => {
-          const bloco = blocos[0];
-          return (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
-                <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
-              </div>
-              <div className="divide-y divide-gray-100">
-                <Row label="Idade participante" value={bloco.idadePart !== null ? `${bloco.idadePart} anos` : "—"} />
-                {temBeneficiario && (
-                  <>
-                    <Row label="Idade beneficiário" value={bloco.idadeBen !== null ? `${bloco.idadeBen} anos` : "—"} />
-                    <Row label="Diferença de idade" value={bloco.diffIdade !== null ? `${bloco.diffIdade} anos` : "—"} />
-                  </>
-                )}
-                <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
-                {temBeneficiario && (
-                  <>
-                    <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
-                    <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
-                  </>
-                )}
-                <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
-                  <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
-                  <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
-                </div>
-              </div>
+        {/* Bloco 1 — completo, sempre visível */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <h3 className="text-sm font-semibold text-blue-700">{blocos[0].label}</h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            <Row label="Idade participante" value={blocos[0].idadePart !== null ? `${blocos[0].idadePart} anos` : "—"} />
+            {temBeneficiario && (
+              <>
+                <Row label="Idade beneficiário" value={blocos[0].idadeBen !== null ? `${blocos[0].idadeBen} anos` : "—"} />
+                <Row label="Diferença de idade" value={blocos[0].diffIdade !== null ? `${blocos[0].diffIdade} anos` : "—"} />
+              </>
+            )}
+            <RowWithParams label="ax"  value={fmt6(blocos[0].ax)}  chamada={blocos[0].axChamada} />
+            {temBeneficiario && (
+              <>
+                <RowWithParams label="ay"  value={fmt6(blocos[0].ay)}  chamada={blocos[0].ayChamada} />
+                <RowWithParams label="axy" value={fmt6(blocos[0].axy)} chamada={blocos[0].axyChamada} />
+              </>
+            )}
+            <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
+              <Row label="Anuidade"        value={fmt6(blocos[0].anuidade)}        bold />
+              <Row label="Anuidade mensal" value={fmt6(blocos[0].anuidadeMensal)} bold />
             </div>
-          );
-        })()}
+          </div>
+        </div>
 
-        {/* Blocos 2 e 3 — parte superior sempre visível, parte inferior com tarja */}
-        <div className="col-span-2 flex flex-col">
+        {/* Partes superiores dos blocos 2 e 3 — sempre visíveis */}
+        {blocos.slice(1).map((bloco) => (
+          <div key={bloco.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
+              <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
+            </div>
+            <div className="divide-y divide-gray-100">
+              <Row label="Idade participante" value={bloco.idadePart !== null ? `${bloco.idadePart} anos` : "—"} />
+              {temBeneficiario && (
+                <>
+                  <Row label="Idade beneficiário" value={bloco.idadeBen !== null ? `${bloco.idadeBen} anos` : "—"} />
+                  <Row label="Diferença de idade" value={bloco.diffIdade !== null ? `${bloco.diffIdade} anos` : "—"} />
+                </>
+              )}
+            </div>
+          </div>
+        ))}
 
-          {/* Partes superiores: header + idades */}
+        {/* Partes inferiores dos blocos 2 e 3 — cobertas pela tarja */}
+        <div className="col-start-2 col-span-2 relative">
           <div className="grid grid-cols-2 gap-4">
             {blocos.slice(1).map((bloco) => (
-              <div key={bloco.label} className="bg-white rounded-t-xl border border-gray-200 border-b-0 overflow-hidden">
-                <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
-                  <h3 className="text-sm font-semibold text-blue-700">{bloco.label}</h3>
-                </div>
+              <div key={bloco.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="divide-y divide-gray-100">
-                  <Row label="Idade participante" value={bloco.idadePart !== null ? `${bloco.idadePart} anos` : "—"} />
+                  <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
                   {temBeneficiario && (
                     <>
-                      <Row label="Idade beneficiário" value={bloco.idadeBen !== null ? `${bloco.idadeBen} anos` : "—"} />
-                      <Row label="Diferença de idade" value={bloco.diffIdade !== null ? `${bloco.diffIdade} anos` : "—"} />
+                      <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
+                      <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
                     </>
                   )}
+                  <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
+                    <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
+                    <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Partes inferiores: ax, ay, axy, anuidade — com tarja */}
-          <div className="relative">
-            <div className="grid grid-cols-2 gap-4">
-              {blocos.slice(1).map((bloco) => (
-                <div key={bloco.label} className="bg-white rounded-b-xl border border-gray-200 border-t-0 overflow-hidden">
-                  <div className="divide-y divide-gray-100">
-                    <RowWithParams label="ax"  value={fmt6(bloco.ax)}  chamada={bloco.axChamada} />
-                    {temBeneficiario && (
-                      <>
-                        <RowWithParams label="ay"  value={fmt6(bloco.ay)}  chamada={bloco.ayChamada} />
-                        <RowWithParams label="axy" value={fmt6(bloco.axy)} chamada={bloco.axyChamada} />
-                      </>
-                    )}
-                    <div className="border-t border-gray-200 bg-gray-50 divide-y divide-gray-100">
-                      <Row label="Anuidade"        value={fmt6(bloco.anuidade)}        bold />
-                      <Row label="Anuidade mensal" value={fmt6(bloco.anuidadeMensal)} bold />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <TarjaDetalhes
-              processoId={id}
-              creditosDisponiveis={creditos}
-              jaRevelado={jaRevelado}
-            />
-          </div>
-
+          <TarjaDetalhes
+            processoId={id}
+            creditosDisponiveis={creditos}
+            jaRevelado={jaRevelado}
+          />
         </div>
+
       </div>
     </div>
   );

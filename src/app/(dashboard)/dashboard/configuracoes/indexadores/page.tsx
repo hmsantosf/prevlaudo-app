@@ -36,7 +36,7 @@ export default async function IndexadoresPage() {
 
   const { data: indexadoresData } = await admin
     .from("indexadores")
-    .select("id, nome, sigla, ativo, created_at")
+    .select("id, nome, sigla, ativo, casas_decimais, created_at")
     .order("created_at", { ascending: false });
 
   const indexadores = (indexadoresData ?? []) as Indexador[];

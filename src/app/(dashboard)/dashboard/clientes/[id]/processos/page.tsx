@@ -73,7 +73,34 @@ type Processo = {
   tipo: string;
   status: string;
   created_at: string;
+  dados_tutela: Record<string, unknown> | null;
 };
+
+interface BotaoTutelaProps {
+  processoId: string;
+  temTutela: boolean;
+}
+
+function BotaoTutela({ processoId, temTutela }: BotaoTutelaProps) {
+  return (
+    <Link
+      href={`/dashboard/processos/${processoId}/tutela`}
+      className={`
+        inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+        ${temTutela
+          ? "bg-green-100 text-green-700 hover:bg-green-200 border border-green-200"
+          : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+        }
+      `}
+    >
+      {temTutela ? (
+        <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Tutela</>
+      ) : (
+        <><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>Tutela</>
+      )}
+    </Link>
+  );
+}
 
 export default async function ClienteProcessosPage({
   params,
@@ -94,7 +121,7 @@ export default async function ClienteProcessosPage({
 
   const { data: processos } = await supabaseAdmin()
     .from("processos")
-    .select("id, tipo, status, created_at")
+    .select("id, tipo, status, created_at, dados_tutela")
     .eq("cliente_id", id)
     .eq("user_id", session!.user!.id)
     .order("created_at", { ascending: false });
@@ -183,6 +210,7 @@ export default async function ClienteProcessosPage({
                         Ver dados
                       </Link>
                       <CalcularButton processoId={p.id} />
+                      <BotaoTutela processoId={p.id} temTutela={!!p.dados_tutela} />
                     </div>
                   </td>
                 </tr>

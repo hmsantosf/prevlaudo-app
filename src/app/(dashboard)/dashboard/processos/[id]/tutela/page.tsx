@@ -165,8 +165,8 @@ export default function TutelaPage() {
     }
   };
 
-  // ── Layout split (ativado quando há arquivo selecionado) ─────────
-  if (arquivo) {
+  // ── Layout split (ativado apenas após extração bem-sucedida) ────
+  if (dados) {
     return (
       <div className="w-full flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
 
@@ -223,106 +223,60 @@ export default function TutelaPage() {
             </button>
           </div>
 
-          {/* Painel direito: dados ou loading */}
+          {/* Painel direito: resultado */}
           <div className="flex-1 overflow-y-auto p-6 bg-white space-y-4">
 
-            {/* Arquivo selecionado */}
-            <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
-              <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText className="w-5 h-5 text-red-500" />
+            {sucesso && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl">
+                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <p className="text-sm text-green-700">Dados extraídos e salvos com sucesso.</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{arquivo.name}</p>
-                <p className="text-xs text-gray-400">{(arquivo.size / 1024 / 1024).toFixed(2)} MB · PDF</p>
+            )}
+
+            {/* Identificação */}
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-3">
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Identificação</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Nome</p>
+                  <p className="text-sm font-medium text-gray-900">{dados.nomeCredor || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">CPF</p>
+                  <p className="text-sm text-gray-900">{dados.cpfCredor || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-0.5">Matrícula AERUS</p>
+                  <p className="text-sm text-gray-900">{dados.matriculaAerus || "—"}</p>
+                </div>
+                {dados.dataDocumento && (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-0.5">Data do Documento</p>
+                    <p className="text-sm text-gray-900">{dados.dataDocumento}</p>
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => { setArquivo(null); setDados(null); setErro(""); setSucesso(false); }}
-                className="p-1.5 hover:bg-gray-200 rounded-lg transition flex-shrink-0"
-                title="Trocar arquivo"
-              >
-                <X className="w-4 h-4 text-gray-400" />
-              </button>
             </div>
 
-            {/* Erro */}
-            {erro && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
-                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700">{erro}</p>
+            {/* Pagamentos */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+                  Histórico de Pagamentos
+                  <span className="ml-2 text-gray-400 font-normal normal-case">
+                    ({dados.pagamentos.length} registro{dados.pagamentos.length !== 1 ? "s" : ""})
+                  </span>
+                </p>
               </div>
-            )}
+              <TabelaPagamentos pagamentos={dados.pagamentos} />
+            </div>
 
-            {/* Botão extrair */}
-            {!dados && (
-              <button
-                onClick={extrairDados}
-                disabled={enviando}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm py-3 rounded-xl transition"
-              >
-                {enviando ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" />Extraindo dados com IA...</>
-                ) : (
-                  "Extrair dados"
-                )}
-              </button>
-            )}
-
-            {/* Resultado */}
-            {dados && (
-              <div className="space-y-4">
-                {sucesso && (
-                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <p className="text-sm text-green-700">Dados extraídos e salvos com sucesso.</p>
-                  </div>
-                )}
-
-                {/* Identificação */}
-                <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-3">
-                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Identificação</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-0.5">Nome</p>
-                      <p className="text-sm font-medium text-gray-900">{dados.nomeCredor || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-0.5">CPF</p>
-                      <p className="text-sm text-gray-900">{dados.cpfCredor || "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-0.5">Matrícula AERUS</p>
-                      <p className="text-sm text-gray-900">{dados.matriculaAerus || "—"}</p>
-                    </div>
-                    {dados.dataDocumento && (
-                      <div>
-                        <p className="text-xs text-gray-500 mb-0.5">Data do Documento</p>
-                        <p className="text-sm text-gray-900">{dados.dataDocumento}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Pagamentos */}
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-gray-100">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                      Histórico de Pagamentos
-                      <span className="ml-2 text-gray-400 font-normal normal-case">
-                        ({dados.pagamentos.length} registro{dados.pagamentos.length !== 1 ? "s" : ""})
-                      </span>
-                    </p>
-                  </div>
-                  <TabelaPagamentos pagamentos={dados.pagamentos} />
-                </div>
-
-                <button
-                  onClick={() => { setDados(null); setSucesso(false); setErro(""); }}
-                  className="w-full text-xs text-gray-400 hover:text-gray-600 transition py-1"
-                >
-                  Reprocessar PDF
-                </button>
-              </div>
-            )}
+            <button
+              onClick={() => { setDados(null); setSucesso(false); setErro(""); }}
+              className="w-full text-xs text-gray-400 hover:text-gray-600 transition py-1"
+            >
+              Reprocessar PDF
+            </button>
           </div>
         </div>
       </div>
@@ -400,6 +354,47 @@ export default function TutelaPage() {
           </div>
         )}
       </div>
+
+      {/* Arquivo selecionado: card + botão extrair */}
+      {arquivo && (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+          <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
+            <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-red-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{arquivo.name}</p>
+              <p className="text-xs text-gray-400">{(arquivo.size / 1024 / 1024).toFixed(2)} MB · PDF</p>
+            </div>
+            <button
+              onClick={() => { setArquivo(null); setErro(""); setSucesso(false); }}
+              className="p-1.5 hover:bg-gray-200 rounded-lg transition flex-shrink-0"
+              title="Trocar arquivo"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+
+          {erro && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{erro}</p>
+            </div>
+          )}
+
+          <button
+            onClick={extrairDados}
+            disabled={enviando}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm py-3 rounded-xl transition"
+          >
+            {enviando ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />Extraindo dados com IA...</>
+            ) : (
+              "Extrair dados"
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

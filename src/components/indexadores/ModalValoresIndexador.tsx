@@ -33,18 +33,23 @@ function mesParaISO(mes: string): string {
 }
 
 function parseBRNumber(str: string): number {
-  if (!str) return 0;
-  const s = str.trim();
+  if (!str && str !== '0') return 0;
+  const s = String(str).trim();
+  if (!s) return 0;
 
   if (s.includes(',')) {
-    // Vírgula sempre é decimal no formato brasileiro
-    // Remove pontos de milhar, substitui vírgula por ponto decimal
-    const resultado = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    // Vírgula é SEMPRE o separador decimal
+    // Remover todos os pontos (separadores de milhar) e trocar vírgula por ponto
+    const limpo = s.replace(/\./g, '').replace(',', '.');
+    const resultado = parseFloat(limpo);
+    console.log('[parseBRNumber] entrada:', str, '→ saída:', resultado);
     return isNaN(resultado) ? 0 : resultado;
   }
 
-  // Sem vírgula: remove pontos (podem ser de milhar) e parseia
-  const resultado = parseFloat(s.replace(/\./g, ''));
+  // Sem vírgula: sem decimal, apenas inteiro possivelmente com ponto de milhar
+  const limpo = s.replace(/\./g, '');
+  const resultado = parseFloat(limpo);
+  console.log('[parseBRNumber] entrada:', str, '→ saída:', resultado);
   return isNaN(resultado) ? 0 : resultado;
 }
 
@@ -134,6 +139,7 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
       const partes = linha.split("\t");
       const mes = partes[0]?.trim() ?? "";
       const rawVal = partes[1]?.trim() ?? "";
+      console.log('[handlePaste] linha bruta:', JSON.stringify(linha), '| mes:', mes, '| rawVal:', rawVal);
       // Armazena o valor já normalizado para ponto decimal
       const val = rawVal ? String(parseBRNumber(rawVal)) : "";
       return { mes, valorAcumulado: val };

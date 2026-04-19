@@ -329,15 +329,7 @@ export default async function CalcularPage({
         ))}
       </div>
 
-      {/* Debug */}
-      <details className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-        <summary className="text-xs font-medium text-gray-500 cursor-pointer select-none">
-          Debug — respostas da API
-        </summary>
-        <pre className="mt-3 text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
-          {JSON.stringify(respostasAPI, null, 2)}
-        </pre>
-      </details>
+
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Calculator } from "lucide-react";
 import type { Metadata } from "next";
+import TarjaDetalhes from "@/components/processos/TarjaDetalhes";
 
 export const metadata: Metadata = {
   title: "Cálculo Atuarial | PrevLaudo",
@@ -162,24 +163,35 @@ export default async function CalcularPage({
   const { id } = await params;
   const session = await auth();
 
-  const { data: processo } = await supabaseAdmin()
-    .from("processos")
-    .select(
-      `id, tipo, status, cliente_id,
-       clientes(
-         name, cpf, data_nascimento, data_concessao, sexo,
-         nome_beneficiario, data_nasc_beneficiario,
-         percentual_continuacao, indenizacao_atualizada
-       )`
-    )
-    .eq("id", id)
-    .eq("user_id", session!.user!.id)
-    .single();
+  const admin = supabaseAdmin();
+
+  const [{ data: processo }, { data: perfil }] = await Promise.all([
+    admin
+      .from("processos")
+      .select(
+        `id, tipo, status, cliente_id, revelado,
+         clientes(
+           name, cpf, data_nascimento, data_concessao, sexo,
+           nome_beneficiario, data_nasc_beneficiario,
+           percentual_continuacao, indenizacao_atualizada
+         )`
+      )
+      .eq("id", id)
+      .eq("user_id", session!.user!.id)
+      .single(),
+    admin
+      .from("profiles")
+      .select("creditos")
+      .eq("id", session!.user!.id)
+      .single(),
+  ]);
 
   if (!processo) notFound();
 
   const p = processo as any;
   const c = p.clientes as ClienteDB;
+  const creditos = (perfil as { creditos: number } | null)?.creditos ?? 0;
+  const jaRevelado = p.revelado ?? false;
 
   if (!c) notFound();
 
@@ -294,7 +306,8 @@ export default async function CalcularPage({
       </div>
 
       {/* 3 blocos lado a lado */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="relative">
+        <div className="grid grid-cols-3 gap-4 select-none">
         {blocos.map((bloco) => (
           <div key={bloco.label} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 bg-blue-50 border-b border-blue-100">
@@ -327,9 +340,13 @@ export default async function CalcularPage({
             </div>
           </div>
         ))}
+        </div>
+        <TarjaDetalhes
+          processoId={id}
+          creditosDisponiveis={creditos}
+          jaRevelado={jaRevelado}
+        />
       </div>
-
-
     </div>
   );
 }

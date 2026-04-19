@@ -9,6 +9,7 @@ type Indexador = {
   nome: string;
   sigla: string;
   ativo: boolean;
+  casas_decimais: number;
   created_at: string;
 };
 
@@ -16,9 +17,10 @@ type FormState = {
   nome: string;
   sigla: string;
   ativo: boolean;
+  casas_decimais: number;
 };
 
-const FORM_VAZIO: FormState = { nome: "", sigla: "", ativo: true };
+const FORM_VAZIO: FormState = { nome: "", sigla: "", ativo: true, casas_decimais: 2 };
 
 interface CamposFormProps {
   f: FormState;
@@ -55,6 +57,16 @@ function CamposForm({ f, onChange }: CamposFormProps) {
           className="w-4 h-4 accent-blue-600"
         />
       </td>
+      <td className="px-3 py-2">
+        <input
+          type="number"
+          value={f.casas_decimais}
+          min={0}
+          max={6}
+          onChange={(e) => onChange({ casas_decimais: Math.min(6, Math.max(0, parseInt(e.target.value) || 0)) })}
+          className="w-16 border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
+        />
+      </td>
     </>
   );
 }
@@ -71,7 +83,7 @@ export default function TabelaIndexadores({ indexadoresIniciais }: { indexadores
 
   const abrirEdicao = (ix: Indexador) => {
     setEditandoId(ix.id);
-    setForm({ nome: ix.nome, sigla: ix.sigla, ativo: ix.ativo });
+    setForm({ nome: ix.nome, sigla: ix.sigla, ativo: ix.ativo, casas_decimais: ix.casas_decimais });
     setErro("");
   };
 
@@ -169,6 +181,7 @@ export default function TabelaIndexadores({ indexadoresIniciais }: { indexadores
           indexadorId={indexadorValores.id}
           indexadorNome={indexadorValores.nome}
           indexadorSigla={indexadorValores.sigla}
+          casasDecimais={indexadorValores.casas_decimais}
           onFechar={() => setIndexadorValores(null)}
         />
       )}
@@ -197,6 +210,7 @@ export default function TabelaIndexadores({ indexadoresIniciais }: { indexadores
                 <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">Nome</th>
                 <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">Sigla</th>
                 <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide text-center">Ativo</th>
+                <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide text-center">Decimais</th>
                 <th className="px-5 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">Ações</th>
               </tr>
             </thead>
@@ -211,7 +225,7 @@ export default function TabelaIndexadores({ indexadoresIniciais }: { indexadores
 
               {indexadores.length === 0 && !novoAberto && (
                 <tr>
-                  <td colSpan={4} className="px-5 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-gray-400">
                     Nenhum indexador cadastrado.
                   </td>
                 </tr>
@@ -235,6 +249,9 @@ export default function TabelaIndexadores({ indexadoresIniciais }: { indexadores
                       >
                         {ix.ativo ? "Sim" : "Não"}
                       </span>
+                    </td>
+                    <td className="px-5 py-4 text-center text-gray-700 font-mono text-sm">
+                      {ix.casas_decimais}
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">

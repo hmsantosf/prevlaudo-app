@@ -23,7 +23,7 @@ export async function GET() {
 
   const { data, error } = await supabaseAdmin()
     .from("indexadores")
-    .select("id, nome, sigla, ativo, created_at")
+    .select("id, nome, sigla, ativo, casas_decimais, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -37,6 +37,7 @@ const postSchema = z.object({
   nome: z.string().min(1, "Nome é obrigatório"),
   sigla: z.string().min(1, "Sigla é obrigatória").max(10, "Sigla deve ter no máximo 10 caracteres"),
   ativo: z.boolean().default(true),
+  casas_decimais: z.number().int().min(0).max(6).default(2),
 });
 
 export async function POST(request: NextRequest) {
@@ -56,8 +57,8 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabaseAdmin()
     .from("indexadores")
-    .insert({ nome: parsed.data.nome, sigla: parsed.data.sigla, ativo: parsed.data.ativo })
-    .select("id, nome, sigla, ativo, created_at")
+    .insert({ nome: parsed.data.nome, sigla: parsed.data.sigla, ativo: parsed.data.ativo, casas_decimais: parsed.data.casas_decimais })
+    .select("id, nome, sigla, ativo, casas_decimais, created_at")
     .single();
 
   if (error) {

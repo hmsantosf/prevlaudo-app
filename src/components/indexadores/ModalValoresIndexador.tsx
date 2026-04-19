@@ -18,6 +18,7 @@ interface Props {
   indexadorId: string;
   indexadorNome: string;
   indexadorSigla: string;
+  casasDecimais: number;
   onFechar: () => void;
 }
 
@@ -74,7 +75,7 @@ function formatarTaxa(taxa: number | null): string {
   return taxa.toFixed(4) + "%";
 }
 
-export default function ModalValoresIndexador({ indexadorId, indexadorNome, indexadorSigla, onFechar }: Props) {
+export default function ModalValoresIndexador({ indexadorId, indexadorNome, indexadorSigla, casasDecimais, onFechar }: Props) {
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -90,7 +91,10 @@ export default function ModalValoresIndexador({ indexadorId, indexadorNome, inde
           // API returns DESC, reverse to ASC for display
           const novas = [...data].reverse().map((v) => ({
             mes: isoParaMes(v.mes),
-            valorAcumulado: String(v.valor_acumulado),
+            valorAcumulado: v.valor_acumulado.toLocaleString("pt-BR", {
+              minimumFractionDigits: casasDecimais,
+              maximumFractionDigits: casasDecimais,
+            }),
           }));
           setLinhas(novas);
         }

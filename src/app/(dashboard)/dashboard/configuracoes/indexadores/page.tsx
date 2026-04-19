@@ -16,6 +16,7 @@ type Indexador = {
   nome: string;
   sigla: string;
   ativo: boolean;
+  casas_decimais: number;
   created_at: string;
 };
 

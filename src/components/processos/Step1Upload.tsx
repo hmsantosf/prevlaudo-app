@@ -1,10 +1,10 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
-import { UploadCloud, FileText, X, Loader2, CheckCircle2 } from "lucide-react";
+import { UploadCloud, FileText, X, CheckCircle2 } from "lucide-react";
 
 interface Props {
-  onExtrair: (arquivoConcessao: File, arquivoTutela: File) => Promise<void>;
+  onContinuar: (arquivoConcessao: File, arquivoTutela: File) => void;
 }
 
 interface ZonaProps {
@@ -132,24 +132,16 @@ function ZonaUpload({ numero, titulo, descricao, arquivo, onArquivo, disabled }:
   );
 }
 
-export default function Step1Upload({ onExtrair }: Props) {
+export default function Step1Upload({ onContinuar }: Props) {
   const [arquivoConcessao, setArquivoConcessao] = useState<File | null>(null);
   const [arquivoTutela, setArquivoTutela] = useState<File | null>(null);
-  const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
 
-  const podeContinuar = !!arquivoConcessao && !!arquivoTutela && !carregando;
+  const podeContinuar = !!arquivoConcessao && !!arquivoTutela;
 
-  const continuar = async () => {
+  const continuar = () => {
     if (!arquivoConcessao || !arquivoTutela) return;
-    setCarregando(true);
-    setErro("");
-    try {
-      await onExtrair(arquivoConcessao, arquivoTutela);
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : "Erro ao processar os PDFs. Verifique os arquivos e tente novamente.");
-      setCarregando(false);
-    }
+    onContinuar(arquivoConcessao, arquivoTutela);
   };
 
   return (
@@ -168,7 +160,7 @@ export default function Step1Upload({ onExtrair }: Props) {
           descricao="PDF emitido pela fundação de previdência (ex.: AERUS)"
           arquivo={arquivoConcessao}
           onArquivo={setArquivoConcessao}
-          disabled={carregando}
+          disabled={false}
         />
         <ZonaUpload
           numero={2}
@@ -176,7 +168,7 @@ export default function Step1Upload({ onExtrair }: Props) {
           descricao="Histórico de Pagamento de Rateio de Crédito / Tutela Antecipada União"
           arquivo={arquivoTutela}
           onArquivo={setArquivoTutela}
-          disabled={carregando}
+          disabled={false}
         />
       </div>
 
@@ -192,14 +184,7 @@ export default function Step1Upload({ onExtrair }: Props) {
         disabled={!podeContinuar}
         className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition"
       >
-        {carregando ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Extraindo dados dos PDFs com IA...
-          </>
-        ) : (
-          "Continuar"
-        )}
+        Continuar
       </button>
     </div>
   );

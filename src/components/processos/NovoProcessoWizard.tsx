@@ -3,19 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  AlertTriangle, ChevronLeft, ChevronRight,
+  FileText, Loader2, AlertCircle, X,
+} from "lucide-react";
 import Step1Upload from "./Step1Upload";
 import Step2Confirmacao from "./Step2Confirmacao";
+import Step3TutelaForm from "./Step3TutelaForm";
 import PdfViewer from "./PdfViewer";
 import type { DadosAerus } from "@/lib/gemini-extract";
 import type { DadosTutela } from "@/lib/gemini-extract-tutela";
 
-type Etapa = 1 | 2;
-type PdfAtivo = "concessao" | "tutela";
+type Etapa = 1 | 2 | 3;
 
 const etapas = [
   { numero: 1, label: "Upload dos documentos" },
-  { numero: 2, label: "Confirmar dados" },
+  { numero: 2, label: "Relatório de Concessão" },
+  { numero: 3, label: "Tutela Antecipada" },
 ];
 
 function StepIndicador({ etapa, className }: { etapa: Etapa; className?: string }) {
@@ -61,24 +65,30 @@ interface Props {
 export default function NovoProcessoWizard({ returnTo }: Props) {
   const router = useRouter();
   const [etapa, setEtapa] = useState<Etapa>(1);
-  const [dados, setDados] = useState<DadosAerus | null>(null);
-  const [dadosTutela, setDadosTutela] = useState<DadosTutela | null>(null);
   const [erroGlobal, setErroGlobal] = useState("");
   const [isDuplicata, setIsDuplicata] = useState(false);
 
-  // PDF state — concessão
+  // ── Arquivos ──────────────────────────────────────────────────────
   const [arquivoPdf, setArquivoPdf] = useState<File | null>(null);
-  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
-  const [termoBusca, setTermoBusca] = useState("");
-
-  // PDF state — tutela
   const [arquivoTutela, setArquivoTutela] = useState<File | null>(null);
+  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
   const [pdfTutelaObjectUrl, setPdfTutelaObjectUrl] = useState<string | null>(null);
 
-  // Qual PDF está ativo no painel esquerdo
-  const [pdfAtivo, setPdfAtivo] = useState<PdfAtivo>("concessao");
+  // ── Etapa 2: extração do Relatório de Concessão ───────────────────
+  const [dadosConcessao, setDadosConcessao] = useState<DadosAerus | null>(null);
+  const [extraindoConcessao, setExtraindoConcessao] = useState(false);
+  const [erroConcessao, setErroConcessao] = useState("");
+  const [termoBusca, setTermoBusca] = useState("");
 
-  // Split panel state
+  // Dados confirmados na etapa 2 (mantidos ao avançar para etapa 3)
+  const [dadosConcessaoConfirmados, setDadosConcessaoConfirmados] = useState<DadosAerus | null>(null);
+
+  // ── Etapa 3: extração do Histórico de Tutela ─────────────────────
+  const [dadosTutela, setDadosTutela] = useState<DadosTutela | null>(null);
+  const [extraindoTutela, setExtraindoTutela] = useState(false);
+  const [erroTutela, setErroTutela] = useState("");
+
+  // ── Split panel ───────────────────────────────────────────────────
   const [leftPct, setLeftPct] = useState(45);
   const [collapsed, setCollapsed] = useState(false);
   const draggingRef = useRef(false);
@@ -114,44 +124,69 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     };
   }, []);
 
-  const extrairDados = async (arquivoConcessao: File, arquivoTut: File) => {
-    setErroGlobal("");
+  // ── Handlers ──────────────────────────────────────────────────────
+
+  const aoReceberArquivos = (arquivoConcessao: File, arquivoTut: File) => {
     setArquivoPdf(arquivoConcessao);
     setArquivoTutela(arquivoTut);
-
-    const formConcessao = new FormData();
-    formConcessao.append("pdf", arquivoConcessao);
-
-    const formTut = new FormData();
-    formTut.append("pdf", arquivoTut);
-
-    const [resConcessao, resTutela] = await Promise.all([
-      fetch("/api/processos/extrair", { method: "POST", body: formConcessao }),
-      fetch("/api/processos/extrair-tutela", { method: "POST", body: formTut }),
-    ]);
-
-    const [jsonConcessao, jsonTutela] = await Promise.all([
-      resConcessao.json(),
-      resTutela.json(),
-    ]);
-
-    if (!resConcessao.ok) {
-      throw new Error(jsonConcessao.error ?? "Erro ao extrair Relatório de Concessão");
-    }
-    if (!resTutela.ok) {
-      throw new Error(jsonTutela.error ?? "Erro ao extrair Histórico de Tutela");
-    }
-
-    setDados(jsonConcessao.dados as DadosAerus);
-    setDadosTutela(jsonTutela.dados as DadosTutela);
+    setDadosConcessao(null);
+    setDadosTutela(null);
+    setDadosConcessaoConfirmados(null);
+    setErroConcessao("");
+    setErroTutela("");
+    setErroGlobal("");
     setEtapa(2);
   };
 
-  const salvar = async (dadosConcessao: DadosAerus, dadosTutelaForm: DadosTutela) => {
+  const extrairConcessao = async () => {
+    if (!arquivoPdf) return;
+    setExtraindoConcessao(true);
+    setErroConcessao("");
+    const form = new FormData();
+    form.append("pdf", arquivoPdf);
+    try {
+      const res = await fetch("/api/processos/extrair", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Erro ao extrair dados do PDF");
+      setDadosConcessao(json.dados as DadosAerus);
+    } catch (e) {
+      setErroConcessao(e instanceof Error ? e.message : "Erro ao processar o PDF. Tente novamente.");
+    } finally {
+      setExtraindoConcessao(false);
+    }
+  };
+
+  const confirmarConcessao = (dados: DadosAerus) => {
+    setDadosConcessaoConfirmados(dados);
+    setDadosTutela(null);
+    setErroTutela("");
+    setErroGlobal("");
+    setEtapa(3);
+  };
+
+  const extrairTutela = async () => {
+    if (!arquivoTutela) return;
+    setExtraindoTutela(true);
+    setErroTutela("");
+    const form = new FormData();
+    form.append("pdf", arquivoTutela);
+    try {
+      const res = await fetch("/api/processos/extrair-tutela", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Erro ao extrair dados do PDF");
+      setDadosTutela(json.dados as DadosTutela);
+    } catch (e) {
+      setErroTutela(e instanceof Error ? e.message : "Erro ao processar o PDF. Tente novamente.");
+    } finally {
+      setExtraindoTutela(false);
+    }
+  };
+
+  const salvar = async (dadosTutelaForm: DadosTutela) => {
+    if (!dadosConcessaoConfirmados) return;
     setErroGlobal("");
     setIsDuplicata(false);
 
-    // Upload dos dois PDFs em paralelo
     let pdfUrl: string | undefined;
     let pdfTutelaUrl: string | undefined;
 
@@ -160,8 +195,8 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     if (arquivoPdf) {
       const form = new FormData();
       form.append("pdf", arquivoPdf);
-      form.append("cpfCredor", dadosConcessao.cpfCredor ?? "");
-      form.append("dataRelatorio", dadosConcessao.dataRelatorio ?? "");
+      form.append("cpfCredor", dadosConcessaoConfirmados.cpfCredor ?? "");
+      form.append("dataRelatorio", dadosConcessaoConfirmados.dataRelatorio ?? "");
       uploads.push(
         fetch("/api/processos/upload-pdf", { method: "POST", body: form })
           .then((r) => (r.ok ? r.json() : null))
@@ -172,8 +207,8 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     if (arquivoTutela) {
       const form = new FormData();
       form.append("pdf", arquivoTutela);
-      form.append("cpfCredor", dadosConcessao.cpfCredor ?? "");
-      form.append("dataRelatorio", dadosConcessao.dataRelatorio ?? "");
+      form.append("cpfCredor", dadosConcessaoConfirmados.cpfCredor ?? "");
+      form.append("dataRelatorio", dadosConcessaoConfirmados.dataRelatorio ?? "");
       form.append("tipo", "tutela");
       uploads.push(
         fetch("/api/processos/upload-pdf", { method: "POST", body: form })
@@ -188,7 +223,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...dadosConcessao,
+        ...dadosConcessaoConfirmados,
         pdf_url:        pdfUrl,
         pdf_tutela_url: pdfTutelaUrl,
         dados_tutela:   dadosTutelaForm,
@@ -214,124 +249,30 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     router.refresh();
   };
 
-  const urlAtiva = pdfAtivo === "concessao" ? pdfObjectUrl : pdfTutelaObjectUrl;
-
-  // ── Etapa 2: layout split full-width ────────────────────────────────────────
-  if (etapa === 2 && dados && dadosTutela) {
+  // ── Etapa 1: upload ───────────────────────────────────────────────
+  if (etapa === 1) {
     return (
-      <div className="w-full flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
-        {/* Step indicator + erro */}
-        <div className="w-full px-4 pt-2 pb-1">
-          <StepIndicador etapa={etapa} className="mb-4" />
-          {erroGlobal && (
-            <div className="mb-3 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-700">{erroGlobal}</p>
-                {isDuplicata && (
-                  <Link
-                    href={returnTo ?? "/dashboard/clientes"}
-                    className="mt-1 inline-block text-xs text-red-600 underline underline-offset-2 hover:text-red-800"
-                  >
-                    Ver lista de processos
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Split panels */}
-        <div ref={containerRef} className="flex flex-1 overflow-hidden border-t border-gray-200 w-full">
-
-          {/* Painel esquerdo: visualizador de PDF com abas */}
-          {!collapsed && (
-            <div style={{ width: `${leftPct}%` }} className="flex-shrink-0 overflow-hidden flex flex-col">
-              {/* Abas */}
-              <div className="flex border-b border-gray-700 bg-gray-800 flex-shrink-0">
-                <button
-                  onClick={() => setPdfAtivo("concessao")}
-                  className={`px-4 py-2 text-xs font-medium transition-colors ${
-                    pdfAtivo === "concessao"
-                      ? "text-white border-b-2 border-blue-400"
-                      : "text-gray-400 hover:text-gray-200"
-                  }`}
-                >
-                  Concessão
-                </button>
-                <button
-                  onClick={() => setPdfAtivo("tutela")}
-                  className={`px-4 py-2 text-xs font-medium transition-colors ${
-                    pdfAtivo === "tutela"
-                      ? "text-white border-b-2 border-blue-400"
-                      : "text-gray-400 hover:text-gray-200"
-                  }`}
-                >
-                  Tutela
-                </button>
-              </div>
-              {/* Viewer */}
-              <div className="flex-1 overflow-hidden">
-                {urlAtiva ? (
-                  <PdfViewer
-                    file={urlAtiva}
-                    termoBusca={pdfAtivo === "concessao" ? termoBusca : ""}
-                  />
-                ) : (
-                  <div
-                    className="flex items-center justify-center h-full text-gray-400 text-sm"
-                    style={{ background: "#2b2b2b" }}
-                  >
-                    Carregando PDF…
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Barra divisória */}
-          <div className="relative flex-shrink-0 flex items-center select-none">
-            <div
-              className="w-1.5 h-full bg-gray-200 hover:bg-blue-300 cursor-col-resize transition-colors"
-              onMouseDown={(e) => { e.preventDefault(); draggingRef.current = true; }}
-            />
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="absolute z-10 w-6 h-10 bg-white border border-gray-200 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-50 transition"
-              style={{ left: "50%", transform: "translateX(-50%)" }}
-              title={collapsed ? "Expandir painel PDF" : "Ocultar painel PDF"}
-            >
-              {collapsed ? (
-                <ChevronRight className="w-3 h-3 text-gray-500" />
-              ) : (
-                <ChevronLeft className="w-3 h-3 text-gray-500" />
-              )}
-            </button>
-          </div>
-
-          {/* Painel direito: formulário */}
-          <div className="flex-1 overflow-y-auto p-6 bg-white">
-            <Step2Confirmacao
-              dadosConcessao={dados}
-              dadosTutela={dadosTutela}
-              onVoltar={() => setEtapa(1)}
-              onSalvar={salvar}
-              onCampoFoco={(valor) => setTermoBusca(valor)}
-            />
-          </div>
+      <div className="max-w-3xl mx-auto">
+        <StepIndicador etapa={etapa} className="mb-10" />
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+          <Step1Upload onContinuar={aoReceberArquivos} />
         </div>
       </div>
     );
   }
 
-  // ── Etapa 1: layout original ─────────────────────────────────────────────────
-  return (
-    <div className="max-w-3xl mx-auto">
-      <StepIndicador etapa={etapa} className="mb-10" />
+  // ── Etapas 2 e 3: layout split ────────────────────────────────────
+  const pdfAtual = etapa === 2 ? pdfObjectUrl : pdfTutelaObjectUrl;
+  const tituloEtapa = etapa === 2 ? "Relatório de Concessão" : "Tutela Antecipada";
+  const arquivoAtual = etapa === 2 ? arquivoPdf : arquivoTutela;
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+  return (
+    <div className="w-full flex flex-col" style={{ height: "calc(100vh - 120px)" }}>
+      {/* Barra superior */}
+      <div className="w-full px-4 pt-2 pb-2 flex-shrink-0 space-y-2">
+        <StepIndicador etapa={etapa} />
         {erroGlobal && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-red-700">{erroGlobal}</p>
@@ -346,9 +287,164 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
             </div>
           </div>
         )}
-
-        <Step1Upload onExtrair={extrairDados} />
       </div>
+
+      {/* Split panels */}
+      <div ref={containerRef} className="flex flex-1 overflow-hidden border-t border-gray-200 w-full">
+
+        {/* Painel esquerdo: visualizador de PDF */}
+        {!collapsed && (
+          <div style={{ width: `${leftPct}%` }} className="flex-shrink-0 overflow-hidden flex flex-col">
+            {/* Rótulo do PDF */}
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border-b border-gray-700 flex-shrink-0">
+              <FileText className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-300 font-medium">{tituloEtapa}</span>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              {pdfAtual ? (
+                <PdfViewer
+                  file={pdfAtual}
+                  termoBusca={etapa === 2 ? termoBusca : ""}
+                />
+              ) : (
+                <div
+                  className="flex items-center justify-center h-full text-gray-400 text-sm"
+                  style={{ background: "#2b2b2b" }}
+                >
+                  Carregando PDF…
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Barra divisória */}
+        <div className="relative flex-shrink-0 flex items-center select-none">
+          <div
+            className="w-1.5 h-full bg-gray-200 hover:bg-blue-300 cursor-col-resize transition-colors"
+            onMouseDown={(e) => { e.preventDefault(); draggingRef.current = true; }}
+          />
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            className="absolute z-10 w-6 h-10 bg-white border border-gray-200 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-50 transition"
+            style={{ left: "50%", transform: "translateX(-50%)" }}
+            title={collapsed ? "Expandir painel PDF" : "Ocultar painel PDF"}
+          >
+            {collapsed
+              ? <ChevronRight className="w-3 h-3 text-gray-500" />
+              : <ChevronLeft  className="w-3 h-3 text-gray-500" />
+            }
+          </button>
+        </div>
+
+        {/* Painel direito: conteúdo da etapa */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          {etapa === 2 ? (
+            dadosConcessao ? (
+              /* Formulário de confirmação do Relatório de Concessão */
+              <div className="p-6">
+                <Step2Confirmacao
+                  dados={dadosConcessao}
+                  onVoltar={() => setDadosConcessao(null)}
+                  onSalvar={confirmarConcessao}
+                  onCampoFoco={(valor) => setTermoBusca(valor)}
+                />
+              </div>
+            ) : (
+              /* Tela de extração do Relatório de Concessão */
+              <PainelExtracao
+                arquivo={arquivoAtual}
+                extraindo={extraindoConcessao}
+                erro={erroConcessao}
+                onExtrair={extrairConcessao}
+                onVoltar={() => setEtapa(1)}
+                labelVoltar="← Voltar ao upload"
+              />
+            )
+          ) : (
+            dadosTutela ? (
+              /* Formulário de confirmação da Tutela */
+              <div className="p-6">
+                <Step3TutelaForm
+                  dados={dadosTutela}
+                  onVoltar={() => setDadosTutela(null)}
+                  onSalvar={salvar}
+                />
+              </div>
+            ) : (
+              /* Tela de extração da Tutela */
+              <PainelExtracao
+                arquivo={arquivoAtual}
+                extraindo={extraindoTutela}
+                erro={erroTutela}
+                onExtrair={extrairTutela}
+                onVoltar={() => setEtapa(2)}
+                labelVoltar="← Voltar ao Relatório de Concessão"
+              />
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Painel de extração (antes de mostrar o formulário) ────────────────────────
+interface PainelExtracaoProps {
+  arquivo: File | null;
+  extraindo: boolean;
+  erro: string;
+  onExtrair: () => void;
+  onVoltar: () => void;
+  labelVoltar: string;
+}
+
+function PainelExtracao({ arquivo, extraindo, erro, onExtrair, onVoltar, labelVoltar }: PainelExtracaoProps) {
+  return (
+    <div className="p-6 space-y-4">
+      {/* Card do arquivo */}
+      {arquivo && (
+        <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
+          <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5 text-red-500" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">{arquivo.name}</p>
+            <p className="text-xs text-gray-400">{(arquivo.size / 1024 / 1024).toFixed(2)} MB · PDF</p>
+          </div>
+        </div>
+      )}
+
+      {/* Erro */}
+      {erro && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">{erro}</p>
+        </div>
+      )}
+
+      {/* Botão extrair */}
+      <button
+        onClick={onExtrair}
+        disabled={extraindo}
+        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm py-3 rounded-xl transition"
+      >
+        {extraindo ? (
+          <><Loader2 className="w-4 h-4 animate-spin" />Extraindo dados com IA...</>
+        ) : (
+          erro ? "Tentar novamente" : "Extrair dados"
+        )}
+      </button>
+
+      {/* Voltar */}
+      <button
+        onClick={onVoltar}
+        disabled={extraindo}
+        className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 disabled:opacity-50 transition py-1"
+      >
+        <X className="w-3 h-3" />
+        {labelVoltar}
+      </button>
     </div>
   );
 }

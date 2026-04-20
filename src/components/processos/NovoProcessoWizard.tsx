@@ -126,24 +126,11 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
 
   // ── Handlers ──────────────────────────────────────────────────────
 
-  const aoReceberArquivos = (arquivoConcessao: File, arquivoTut: File) => {
-    setArquivoPdf(arquivoConcessao);
-    setArquivoTutela(arquivoTut);
-    setDadosConcessao(null);
-    setDadosTutela(null);
-    setDadosConcessaoConfirmados(null);
-    setErroConcessao("");
-    setErroTutela("");
-    setErroGlobal("");
-    setEtapa(2);
-  };
-
-  const extrairConcessao = async () => {
-    if (!arquivoPdf) return;
+  const extrairConcessao = async (arquivo: File) => {
     setExtraindoConcessao(true);
     setErroConcessao("");
     const form = new FormData();
-    form.append("pdf", arquivoPdf);
+    form.append("pdf", arquivo);
     try {
       const res = await fetch("/api/processos/extrair", { method: "POST", body: form });
       const json = await res.json();
@@ -156,20 +143,11 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     }
   };
 
-  const confirmarConcessao = (dados: DadosAerus) => {
-    setDadosConcessaoConfirmados(dados);
-    setDadosTutela(null);
-    setErroTutela("");
-    setErroGlobal("");
-    setEtapa(3);
-  };
-
-  const extrairTutela = async () => {
-    if (!arquivoTutela) return;
+  const extrairTutela = async (arquivo: File) => {
     setExtraindoTutela(true);
     setErroTutela("");
     const form = new FormData();
-    form.append("pdf", arquivoTutela);
+    form.append("pdf", arquivo);
     try {
       const res = await fetch("/api/processos/extrair-tutela", { method: "POST", body: form });
       const json = await res.json();
@@ -180,6 +158,30 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
     } finally {
       setExtraindoTutela(false);
     }
+  };
+
+  const aoReceberArquivos = (arquivoConcessao: File, arquivoTut: File) => {
+    setArquivoPdf(arquivoConcessao);
+    setArquivoTutela(arquivoTut);
+    setDadosConcessao(null);
+    setDadosTutela(null);
+    setDadosConcessaoConfirmados(null);
+    setErroConcessao("");
+    setErroTutela("");
+    setErroGlobal("");
+    setTermoBusca("");
+    setEtapa(2);
+    extrairConcessao(arquivoConcessao);
+  };
+
+  const confirmarConcessao = (dados: DadosAerus) => {
+    setDadosConcessaoConfirmados(dados);
+    setDadosTutela(null);
+    setErroTutela("");
+    setErroGlobal("");
+    setTermoBusca("");
+    setEtapa(3);
+    if (arquivoTutela) extrairTutela(arquivoTutela);
   };
 
   const salvar = async (dadosTutelaForm: DadosTutela) => {
@@ -304,7 +306,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               {pdfAtual ? (
                 <PdfViewer
                   file={pdfAtual}
-                  termoBusca={etapa === 2 ? termoBusca : ""}
+                  termoBusca={termoBusca}
                 />
               ) : (
                 <div
@@ -345,7 +347,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               <div className="p-6">
                 <Step2Confirmacao
                   dados={dadosConcessao}
-                  onVoltar={() => setDadosConcessao(null)}
+                  onVoltar={() => { setDadosConcessao(null); if (arquivoPdf) extrairConcessao(arquivoPdf); }}
                   onSalvar={confirmarConcessao}
                   onCampoFoco={(valor) => setTermoBusca(valor)}
                 />
@@ -356,7 +358,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
                 arquivo={arquivoAtual}
                 extraindo={extraindoConcessao}
                 erro={erroConcessao}
-                onExtrair={extrairConcessao}
+                onExtrair={() => arquivoPdf && extrairConcessao(arquivoPdf)}
                 onVoltar={() => setEtapa(1)}
                 labelVoltar="← Voltar ao upload"
               />
@@ -367,8 +369,9 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               <div className="p-6">
                 <Step3TutelaForm
                   dados={dadosTutela}
-                  onVoltar={() => setDadosTutela(null)}
+                  onVoltar={() => { setDadosTutela(null); if (arquivoTutela) extrairTutela(arquivoTutela); }}
                   onSalvar={salvar}
+                  onCampoFoco={(valor) => setTermoBusca(valor)}
                 />
               </div>
             ) : (
@@ -377,7 +380,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
                 arquivo={arquivoAtual}
                 extraindo={extraindoTutela}
                 erro={erroTutela}
-                onExtrair={extrairTutela}
+                onExtrair={() => arquivoTutela && extrairTutela(arquivoTutela)}
                 onVoltar={() => setEtapa(2)}
                 labelVoltar="← Voltar ao Relatório de Concessão"
               />
@@ -415,26 +418,29 @@ function PainelExtracao({ arquivo, extraindo, erro, onExtrair, onVoltar, labelVo
         </div>
       )}
 
-      {/* Erro */}
-      {erro && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
-          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700">{erro}</p>
+      {/* Extraindo */}
+      {extraindo && (
+        <div className="flex flex-col items-center justify-center gap-3 py-8">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <p className="text-sm text-gray-500">Extraindo dados com IA...</p>
         </div>
       )}
 
-      {/* Botão extrair */}
-      <button
-        onClick={onExtrair}
-        disabled={extraindo}
-        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm py-3 rounded-xl transition"
-      >
-        {extraindo ? (
-          <><Loader2 className="w-4 h-4 animate-spin" />Extraindo dados com IA...</>
-        ) : (
-          erro ? "Tentar novamente" : "Extrair dados"
-        )}
-      </button>
+      {/* Erro */}
+      {erro && !extraindo && (
+        <>
+          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{erro}</p>
+          </div>
+          <button
+            onClick={onExtrair}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm py-3 rounded-xl transition"
+          >
+            Tentar novamente
+          </button>
+        </>
+      )}
 
       {/* Voltar */}
       <button

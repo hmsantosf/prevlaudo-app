@@ -5,19 +5,36 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
-  ChevronRight,
   UploadCloud,
   FileText,
   X,
   Loader2,
-  CheckCircle2,
   AlertTriangle,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
-import PdfViewer from "@/components/processos/PdfViewer";
 import type { DadosTutela, PagamentoTutela } from "@/lib/gemini-extract-tutela";
 
 function formatBRL(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function Field({ label, value }: { label: string; value: string | null | undefined }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-sm text-gray-900">{value || "—"}</p>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+      <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wide">{title}</h2>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-5">{children}</div>
+    </div>
+  );
 }
 
 function TabelaPagamentos({ pagamentos }: { pagamentos: PagamentoTutela[] }) {
@@ -72,48 +89,32 @@ function TabelaPagamentos({ pagamentos }: { pagamentos: PagamentoTutela[] }) {
 export default function TutelaPage() {
   const { id } = useParams<{ id: string }>();
 
-  // PDF state
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
-  const [arrastando, setArrastando] = useState(false);
+  // Initial load
+  const [carregandoInicial, setCarregandoInicial] = useState(true);
+  const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
 
-  // Extração
+  // Data
   const [dados, setDados] = useState<DadosTutela | null>(null);
+
+  // Upload
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arrastando, setArrastando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
-  const [sucesso, setSucesso] = useState(false);
-
-  // Split panel
-  const [leftPct, setLeftPct] = useState(50);
-  const [collapsed, setCollapsed] = useState(false);
-  const draggingRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Cria object URL quando arquivo é selecionado
   useEffect(() => {
-    if (!arquivo) { setPdfObjectUrl(null); return; }
-    const url = URL.createObjectURL(arquivo);
-    setPdfObjectUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [arquivo]);
-
-  // Drag do divisor
-  useEffect(() => {
-    const onMouseMove = (e: MouseEvent) => {
-      if (!draggingRef.current || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const newPct = ((e.clientX - rect.left) / rect.width) * 100;
-      setLeftPct(Math.min(80, Math.max(15, newPct)));
-    };
-    const onMouseUp = () => { draggingRef.current = false; };
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-    return () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-  }, []);
+    fetch(`/api/processos/${id}/tutela`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.dados_tutela) {
+          setDados(json.dados_tutela as DadosTutela);
+          setPdfSignedUrl(json.pdf_signed_url ?? null);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCarregandoInicial(false));
+  }, [id]);
 
   const selecionarArquivo = (file: File) => {
     if (file.type !== "application/pdf") {
@@ -125,8 +126,6 @@ export default function TutelaPage() {
       return;
     }
     setErro("");
-    setDados(null);
-    setSucesso(false);
     setArquivo(file);
   };
 
@@ -141,7 +140,6 @@ export default function TutelaPage() {
     if (!arquivo) return;
     setEnviando(true);
     setErro("");
-    setSucesso(false);
 
     const formData = new FormData();
     formData.append("pdf", arquivo);
@@ -156,8 +154,8 @@ export default function TutelaPage() {
         setErro(json.error ?? "Erro ao processar o PDF.");
         return;
       }
-      setDados(json.dados_tutela);
-      setSucesso(true);
+      setDados(json.dados_tutela as DadosTutela);
+      setPdfSignedUrl(null);
     } catch {
       setErro("Erro de conexão. Tente novamente.");
     } finally {
@@ -165,125 +163,99 @@ export default function TutelaPage() {
     }
   };
 
-  // ── Layout split (ativado apenas após extração bem-sucedida) ────
+  // ── Carregando estado inicial ─────────────────────────────────────
+  if (carregandoInicial) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  // ── Visualização dos dados salvos ─────────────────────────────────
   if (dados) {
     return (
-      <div className="w-full flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
+      <div className="max-w-5xl mx-auto p-8 space-y-6">
+        <Link
+          href={`/dashboard/processos/${id}/dados`}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Voltar para dados do processo
+        </Link>
 
-        {/* Barra superior */}
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
-          <Link
-            href={`/dashboard/processos/${id}/dados`}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Voltar
-          </Link>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Tutela Antecipada</h1>
+              <p className="text-sm text-gray-500">{dados.nomeCredor || "—"}</p>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-gray-900">Tutela Antecipada</span>
+            {pdfSignedUrl && (
+              <a
+                href={pdfSignedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Ver PDF
+              </a>
+            )}
+            <button
+              onClick={() => { setDados(null); setArquivo(null); setErro(""); }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Substituir PDF
+            </button>
           </div>
         </div>
 
-        {/* Split panels */}
-        <div ref={containerRef} className="flex flex-1 overflow-hidden">
+        <Section title="Dados do Plano">
+          <Field label="Nome do Plano"     value={dados.nomePlano} />
+          <Field label="CNPB"              value={dados.cnpb} />
+          <Field label="Isonomia do Plano" value={dados.isonomiaPlano} />
+        </Section>
 
-          {/* Painel esquerdo: PDF */}
-          {!collapsed && (
-            <div style={{ width: `${leftPct}%` }} className="flex-shrink-0 overflow-hidden">
-              {pdfObjectUrl ? (
-                <PdfViewer file={pdfObjectUrl} />
-              ) : (
-                <div
-                  className="flex items-center justify-center h-full text-sm"
-                  style={{ background: "#2b2b2b", color: "rgba(255,255,255,0.35)" }}
-                >
-                  Carregando PDF…
-                </div>
-              )}
-            </div>
-          )}
+        <Section title="Dados do Credor">
+          <Field label="Nome"               value={dados.nomeCredor} />
+          <Field label="CPF"                value={dados.cpfCredor} />
+          <Field label="Matrícula AERUS"    value={dados.matriculaAerus} />
+          <Field label="Isonomia Individual" value={dados.isonomiaIndividual} />
+          <Field label="IIP"                value={dados.iip} />
+          <Field label="Data do Documento"  value={dados.dataDocumento} />
+        </Section>
 
-          {/* Divisor arrastável */}
-          <div className="relative flex-shrink-0 flex items-center select-none">
-            <div
-              className="w-1.5 h-full bg-gray-200 hover:bg-blue-300 cursor-col-resize transition-colors"
-              onMouseDown={(e) => { e.preventDefault(); draggingRef.current = true; }}
-            />
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="absolute z-10 w-6 h-10 bg-white border border-gray-200 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-50 transition"
-              style={{ left: "50%", transform: "translateX(-50%)" }}
-              title={collapsed ? "Expandir painel PDF" : "Ocultar painel PDF"}
-            >
-              {collapsed
-                ? <ChevronRight className="w-3 h-3 text-gray-500" />
-                : <ChevronLeft  className="w-3 h-3 text-gray-500" />
-              }
-            </button>
+        <Section title="Valores">
+          <Field label="Provisão Mat. Individual" value={dados.provisaoMatematicaIndividual} />
+          <Field label="Total Pago"               value={dados.totalPago} />
+          <Field label="Provisão Mat. Principal"  value={dados.provisaoMatematicaPrincipal} />
+          <Field label="Correção Mon. Provisão"   value={dados.correcaoMonetariaProvisao} />
+          <Field label="Juros s/ Provisão Mat."   value={dados.jurosProvisaoMatematica} />
+          <Field label="Correção Mon. Juros"      value={dados.correcaoMonetariaJuros} />
+        </Section>
+
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
+              Histórico de Pagamentos
+              <span className="ml-2 text-gray-400 font-normal normal-case">
+                ({dados.pagamentos.length} registro{dados.pagamentos.length !== 1 ? "s" : ""})
+              </span>
+            </h2>
           </div>
-
-          {/* Painel direito: resultado */}
-          <div className="flex-1 overflow-y-auto p-6 bg-white space-y-4">
-
-            {sucesso && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-xl">
-                <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                <p className="text-sm text-green-700">Dados extraídos e salvos com sucesso.</p>
-              </div>
-            )}
-
-            {/* Identificação */}
-            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-3">
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Identificação</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Nome</p>
-                  <p className="text-sm font-medium text-gray-900">{dados.nomeCredor || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">CPF</p>
-                  <p className="text-sm text-gray-900">{dados.cpfCredor || "—"}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-0.5">Matrícula AERUS</p>
-                  <p className="text-sm text-gray-900">{dados.matriculaAerus || "—"}</p>
-                </div>
-                {dados.dataDocumento && (
-                  <div>
-                    <p className="text-xs text-gray-500 mb-0.5">Data do Documento</p>
-                    <p className="text-sm text-gray-900">{dados.dataDocumento}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Pagamentos */}
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide">
-                  Histórico de Pagamentos
-                  <span className="ml-2 text-gray-400 font-normal normal-case">
-                    ({dados.pagamentos.length} registro{dados.pagamentos.length !== 1 ? "s" : ""})
-                  </span>
-                </p>
-              </div>
-              <TabelaPagamentos pagamentos={dados.pagamentos} />
-            </div>
-
-            <button
-              onClick={() => { setDados(null); setSucesso(false); setErro(""); }}
-              className="w-full text-xs text-gray-400 hover:text-gray-600 transition py-1"
-            >
-              Reprocessar PDF
-            </button>
-          </div>
+          <TabelaPagamentos pagamentos={dados.pagamentos} />
         </div>
       </div>
     );
   }
 
-  // ── Tela inicial: sem arquivo selecionado ────────────────────────
+  // ── Tela de upload ────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-6">
       <Link
@@ -295,8 +267,8 @@ export default function TutelaPage() {
       </Link>
 
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-blue-600" />
+        <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5 text-purple-600" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Tutela Antecipada</h1>
@@ -347,7 +319,7 @@ export default function TutelaPage() {
           />
         </div>
 
-        {erro && (
+        {erro && !arquivo && (
           <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
             <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
             <p className="text-sm text-red-600">{erro}</p>
@@ -355,7 +327,6 @@ export default function TutelaPage() {
         )}
       </div>
 
-      {/* Arquivo selecionado: card + botão extrair */}
       {arquivo && (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
           <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
@@ -367,7 +338,7 @@ export default function TutelaPage() {
               <p className="text-xs text-gray-400">{(arquivo.size / 1024 / 1024).toFixed(2)} MB · PDF</p>
             </div>
             <button
-              onClick={() => { setArquivo(null); setErro(""); setSucesso(false); }}
+              onClick={() => { setArquivo(null); setErro(""); }}
               className="p-1.5 hover:bg-gray-200 rounded-lg transition flex-shrink-0"
               title="Trocar arquivo"
             >

@@ -16,7 +16,7 @@ export async function GET(
 
   const { data: processo, error } = await supabaseAdmin()
     .from("processos")
-    .select("id, dados_tutela")
+    .select("id, dados_tutela, pdf_tutela_url")
     .eq("id", id)
     .eq("user_id", session.user.id)
     .single();
@@ -25,7 +25,19 @@ export async function GET(
     return NextResponse.json({ error: "Processo não encontrado" }, { status: 404 });
   }
 
-  return NextResponse.json({ dados_tutela: processo.dados_tutela ?? null });
+  let pdfSignedUrl: string | null = null;
+  if (processo.pdf_tutela_url) {
+    const { data: signedData } = await supabaseAdmin()
+      .storage
+      .from("processos")
+      .createSignedUrl(processo.pdf_tutela_url as string, 3600);
+    pdfSignedUrl = signedData?.signedUrl ?? null;
+  }
+
+  return NextResponse.json({
+    dados_tutela: processo.dados_tutela ?? null,
+    pdf_signed_url: pdfSignedUrl,
+  });
 }
 
 export async function POST(

@@ -60,10 +60,13 @@ export default function PdfViewer({ file, termoBusca }: Props) {
 
   const customTextRenderer = useCallback(
     ({ str }: { str: string }) => {
-      if (termoBusca && str.toLowerCase().includes(termoBusca.toLowerCase())) {
-        return `<mark style="background: yellow; opacity: 0.5;">${str}</mark>`;
-      }
-      return str;
+      if (!termoBusca || termoBusca.trim().length < 2) return str;
+      const idx = str.toLowerCase().indexOf(termoBusca.toLowerCase());
+      if (idx === -1) return str;
+      const antes = str.slice(0, idx);
+      const match = str.slice(idx, idx + termoBusca.length);
+      const depois = str.slice(idx + termoBusca.length);
+      return `${antes}<mark style="background:#FFD700;opacity:0.8;border-radius:2px;">${match}</mark>${depois}`;
     },
     [termoBusca],
   );

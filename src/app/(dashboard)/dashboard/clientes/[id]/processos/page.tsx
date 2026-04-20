@@ -73,6 +73,8 @@ type Processo = {
   tipo: string;
   status: string;
   created_at: string;
+  dados_aerus: object | null;
+  dados_tutela: object | null;
 };
 
 export default async function ClienteProcessosPage({
@@ -94,7 +96,7 @@ export default async function ClienteProcessosPage({
 
   const { data: processos } = await supabaseAdmin()
     .from("processos")
-    .select("id, tipo, status, created_at")
+    .select("id, tipo, status, created_at, dados_aerus, dados_tutela")
     .eq("cliente_id", id)
     .eq("user_id", session!.user!.id)
     .order("created_at", { ascending: false });
@@ -177,10 +179,25 @@ export default async function ClienteProcessosPage({
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/dashboard/processos/${p.id}/dados`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition"
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition ${
+                          p.dados_aerus
+                            ? "text-green-700 bg-green-50 hover:bg-green-100 border-green-200"
+                            : "text-gray-400 bg-white hover:bg-gray-50 border-gray-200"
+                        }`}
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        Ver dados
+                        Ver concessão
+                      </Link>
+                      <Link
+                        href={`/dashboard/processos/${p.id}/tutela`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition ${
+                          p.dados_tutela
+                            ? "text-purple-700 bg-purple-50 hover:bg-purple-100 border-purple-200"
+                            : "text-gray-400 bg-white hover:bg-gray-50 border-gray-200"
+                        }`}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Ver tutela
                       </Link>
                       <CalcularButton processoId={p.id} />
                     </div>

@@ -347,10 +347,9 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               <div className="p-6">
                 <Step2Confirmacao
                   dados={dadosConcessao}
-                  onVoltar={() => { setDadosConcessao(null); if (arquivoPdf) extrairConcessao(arquivoPdf); }}
+                  onVoltar={() => setEtapa(1)}
                   onSalvar={confirmarConcessao}
                   onCampoFoco={(valor) => setTermoBusca(valor)}
-                  onCampoBlur={() => setTermoBusca("")}
                 />
               </div>
             ) : (
@@ -370,10 +369,9 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
               <div className="p-6">
                 <Step3TutelaForm
                   dados={dadosTutela}
-                  onVoltar={() => { setDadosTutela(null); if (arquivoTutela) extrairTutela(arquivoTutela); }}
+                  onVoltar={() => setEtapa(2)}
                   onSalvar={salvar}
                   onCampoFoco={(valor) => setTermoBusca(valor)}
-                  onCampoBlur={() => setTermoBusca("")}
                 />
               </div>
             ) : (

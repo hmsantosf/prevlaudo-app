@@ -31,7 +31,6 @@ interface Props {
   onVoltar: () => void;
   onSalvar: (dados: DadosTutela) => Promise<void>;
   onCampoFoco?: (valor: string) => void;
-  onCampoBlur?: () => void;
 }
 
 interface CampoProps {
@@ -41,10 +40,9 @@ interface CampoProps {
   destaque?: boolean;
   colSpan?: 1 | 2 | 3;
   onCampoFoco?: (valor: string) => void;
-  onCampoBlur?: () => void;
 }
 
-function Campo({ label, name, register, destaque, colSpan, onCampoFoco, onCampoBlur }: CampoProps) {
+function Campo({ label, name, register, destaque, colSpan, onCampoFoco }: CampoProps) {
   const span =
     colSpan === 2 ? "sm:col-span-2" :
     colSpan === 3 ? "sm:col-span-2 lg:col-span-3" : "";
@@ -57,7 +55,7 @@ function Campo({ label, name, register, destaque, colSpan, onCampoFoco, onCampoB
       <input
         {...register(name)}
         onFocus={(e) => onCampoFoco?.(e.target.value)}
-        onBlur={() => onCampoBlur?.()}
+        onBlur={() => onCampoFoco?.("")}
         className={[
           "w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 transition",
           destaque ? "border-amber-300 bg-amber-50" : "border-gray-200 bg-white",
@@ -84,7 +82,7 @@ function formatBRL(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export default function Step3TutelaForm({ dados, onVoltar, onSalvar, onCampoFoco, onCampoBlur }: Props) {
+export default function Step3TutelaForm({ dados, onVoltar, onSalvar, onCampoFoco }: Props) {
   const camposVazios = [
     dados.nomePlano, dados.cnpb, dados.isonomiaPlano, dados.nomeCredor,
     dados.matriculaAerus, dados.isonomiaIndividual, dados.provisaoMatematicaIndividual,
@@ -144,27 +142,27 @@ export default function Step3TutelaForm({ dados, onVoltar, onSalvar, onCampoFoco
       )}
 
       <Secao titulo="Identificação do Plano">
-        <Campo colSpan={2} label="Nome do Plano"      name="nomePlano"      register={register} destaque={!dados.nomePlano}      onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="CNPB"               name="cnpb"           register={register} destaque={!dados.cnpb}           onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="Isonomia do Plano"  name="isonomiaPlano"  register={register} destaque={!dados.isonomiaPlano}  onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
+        <Campo colSpan={2} label="Nome do Plano"      name="nomePlano"      register={register} destaque={!dados.nomePlano}      onCampoFoco={onCampoFoco} />
+        <Campo             label="CNPB"               name="cnpb"           register={register} destaque={!dados.cnpb}           onCampoFoco={onCampoFoco} />
+        <Campo             label="Isonomia do Plano"  name="isonomiaPlano"  register={register} destaque={!dados.isonomiaPlano}  onCampoFoco={onCampoFoco} />
       </Secao>
 
       <Secao titulo="Dados do Participante">
-        <Campo colSpan={2} label="Nome do Credor"      name="nomeCredor"           register={register} destaque={!dados.nomeCredor}           onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="CPF"                 name="cpfCredor"            register={register} destaque={!dados.cpfCredor}            onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="Matrícula AERUS"     name="matriculaAerus"       register={register} destaque={!dados.matriculaAerus}       onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="Isonomia Individual" name="isonomiaIndividual"   register={register} destaque={!dados.isonomiaIndividual}   onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="IIP"                 name="iip"                  register={register} destaque={!dados.iip}                  onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo             label="Data do Documento"   name="dataDocumento"        register={register} destaque={!dados.dataDocumento}        onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
+        <Campo colSpan={2} label="Nome do Credor"      name="nomeCredor"           register={register} destaque={!dados.nomeCredor}           onCampoFoco={onCampoFoco} />
+        <Campo             label="CPF"                 name="cpfCredor"            register={register} destaque={!dados.cpfCredor}            onCampoFoco={onCampoFoco} />
+        <Campo             label="Matrícula AERUS"     name="matriculaAerus"       register={register} destaque={!dados.matriculaAerus}       onCampoFoco={onCampoFoco} />
+        <Campo             label="Isonomia Individual" name="isonomiaIndividual"   register={register} destaque={!dados.isonomiaIndividual}   onCampoFoco={onCampoFoco} />
+        <Campo             label="IIP"                 name="iip"                  register={register} destaque={!dados.iip}                  onCampoFoco={onCampoFoco} />
+        <Campo             label="Data do Documento"   name="dataDocumento"        register={register} destaque={!dados.dataDocumento}        onCampoFoco={onCampoFoco} />
       </Secao>
 
       <Secao titulo="Valores">
-        <Campo label="Provisão Mat. Individual" name="provisaoMatematicaIndividual" register={register} destaque={!dados.provisaoMatematicaIndividual} onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo label="Total Pago"               name="totalPago"                   register={register} destaque={!dados.totalPago}                   onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo label="Provisão Mat. Principal"  name="provisaoMatematicaPrincipal" register={register} destaque={!dados.provisaoMatematicaPrincipal} onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo label="Correção Mon. Provisão"   name="correcaoMonetariaProvisao"   register={register} destaque={!dados.correcaoMonetariaProvisao}   onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo label="Juros s/ Provisão Mat."   name="jurosProvisaoMatematica"     register={register} destaque={!dados.jurosProvisaoMatematica}     onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
-        <Campo label="Correção Mon. Juros"      name="correcaoMonetariaJuros"      register={register} destaque={!dados.correcaoMonetariaJuros}      onCampoFoco={onCampoFoco} onCampoBlur={onCampoBlur} />
+        <Campo label="Provisão Mat. Individual" name="provisaoMatematicaIndividual" register={register} destaque={!dados.provisaoMatematicaIndividual} onCampoFoco={onCampoFoco} />
+        <Campo label="Total Pago"               name="totalPago"                   register={register} destaque={!dados.totalPago}                   onCampoFoco={onCampoFoco} />
+        <Campo label="Provisão Mat. Principal"  name="provisaoMatematicaPrincipal" register={register} destaque={!dados.provisaoMatematicaPrincipal} onCampoFoco={onCampoFoco} />
+        <Campo label="Correção Mon. Provisão"   name="correcaoMonetariaProvisao"   register={register} destaque={!dados.correcaoMonetariaProvisao}   onCampoFoco={onCampoFoco} />
+        <Campo label="Juros s/ Provisão Mat."   name="jurosProvisaoMatematica"     register={register} destaque={!dados.jurosProvisaoMatematica}     onCampoFoco={onCampoFoco} />
+        <Campo label="Correção Mon. Juros"      name="correcaoMonetariaJuros"      register={register} destaque={!dados.correcaoMonetariaJuros}      onCampoFoco={onCampoFoco} />
       </Secao>
 
       {dados.pagamentos.length > 0 && (
@@ -209,7 +207,7 @@ export default function Step3TutelaForm({ dados, onVoltar, onSalvar, onCampoFoco
           className="flex items-center gap-2 px-5 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium text-sm rounded-xl transition disabled:opacity-50"
         >
           <ChevronLeft className="w-4 h-4" />
-          Reextrair
+          Voltar
         </button>
 
         <button

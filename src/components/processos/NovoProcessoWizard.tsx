@@ -350,6 +350,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
                   onVoltar={() => { setDadosConcessao(null); if (arquivoPdf) extrairConcessao(arquivoPdf); }}
                   onSalvar={confirmarConcessao}
                   onCampoFoco={(valor) => setTermoBusca(valor)}
+                  onCampoBlur={() => setTermoBusca("")}
                 />
               </div>
             ) : (
@@ -372,6 +373,7 @@ export default function NovoProcessoWizard({ returnTo }: Props) {
                   onVoltar={() => { setDadosTutela(null); if (arquivoTutela) extrairTutela(arquivoTutela); }}
                   onSalvar={salvar}
                   onCampoFoco={(valor) => setTermoBusca(valor)}
+                  onCampoBlur={() => setTermoBusca("")}
                 />
               </div>
             ) : (

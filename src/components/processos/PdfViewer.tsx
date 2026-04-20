@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -16,28 +16,11 @@ interface Props {
   termoBusca?: string;
 }
 
-const escHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-// PDF text layers split text into small chunks. When the search value is a
-// multi-word phrase (e.g. a full name), no single chunk will contain all words.
-// We pick the longest word as the search token — most distinctive, most likely
-// to appear as one chunk in the PDF.
-function extrairToken(texto: string): string {
-  const t = texto.trim();
-  if (!t) return "";
-  if (!t.includes(" ")) return t;
-  const palavras = t.split(/\s+/).filter((w) => w.length > 2);
-  if (!palavras.length) return t.split(/\s+/)[0] ?? "";
-  return palavras.reduce((a, b) => (a.length >= b.length ? a : b));
-}
-
 export default function PdfViewer({ file, termoBusca }: Props) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(0.9);
   const [zoomInput, setZoomInput] = useState("90");
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const onLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
     setNumPages(numPages);
@@ -75,50 +58,14 @@ export default function PdfViewer({ file, termoBusca }: Props) {
     }
   };
 
-  // After termoBusca changes, wait for the text layer to re-render then scroll
-  // to the first highlighted element. Retries up to 5 times with backoff.
-  useEffect(() => {
-    if (!termoBusca?.trim() || !scrollRef.current) return;
-    const container = scrollRef.current;
-    let attempts = 0;
-
-    const tryScroll = () => {
-      const el = container.querySelector<HTMLElement>("[data-highlight='true']");
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        return;
-      }
-      if (++attempts < 6) {
-        setTimeout(tryScroll, 150 * attempts);
-      }
-    };
-
-    setTimeout(tryScroll, 150);
-  }, [termoBusca]);
-
-  const token = extrairToken(termoBusca ?? "");
-
   const customTextRenderer = useCallback(
     ({ str }: { str: string }) => {
-      if (!token || !str) return escHtml(str);
-
-      const haystack = str.toLowerCase();
-      const needle   = token.toLowerCase();
-
-      if (!haystack.includes(needle)) return escHtml(str);
-
-      const idx    = haystack.indexOf(needle);
-      const before = escHtml(str.slice(0, idx));
-      const match  = escHtml(str.slice(idx, idx + needle.length));
-      const after  = escHtml(str.slice(idx + needle.length));
-
-      return (
-        `${before}<mark data-highlight="true" ` +
-        `style="background:#fbbf24;opacity:0.75;border-radius:2px;"` +
-        `>${match}</mark>${after}`
-      );
+      if (termoBusca && str.toLowerCase().includes(termoBusca.toLowerCase())) {
+        return `<mark style="background: yellow; opacity: 0.5;">${str}</mark>`;
+      }
+      return str;
     },
-    [token],
+    [termoBusca],
   );
 
   return (
@@ -210,7 +157,7 @@ export default function PdfViewer({ file, termoBusca }: Props) {
           </div>
         }
       >
-        <div ref={scrollRef} className="flex-1 overflow-auto flex justify-center py-4 px-2">
+        <div className="flex-1 overflow-auto flex justify-center py-4 px-2">
           <Page
             pageNumber={currentPage}
             scale={scale}

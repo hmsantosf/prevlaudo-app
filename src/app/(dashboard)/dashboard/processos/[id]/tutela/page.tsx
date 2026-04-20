@@ -11,7 +11,6 @@ import {
   Loader2,
   AlertTriangle,
   ExternalLink,
-  RefreshCw,
 } from "lucide-react";
 import type { DadosTutela, PagamentoTutela } from "@/lib/gemini-extract-tutela";
 
@@ -206,13 +205,6 @@ export default function TutelaPage() {
                 Ver PDF
               </a>
             )}
-            <button
-              onClick={() => { setDados(null); setArquivo(null); setErro(""); }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Substituir PDF
-            </button>
           </div>
         </div>
 

@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Calculator, FileText, ExternalLink } from "lucide-react";
+import { ChevronLeft, FileText, ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -110,13 +110,6 @@ export default async function DadosPage({
               Ver PDF
             </a>
           )}
-          <Link
-            href={`/dashboard/processos/${id}/calcular`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition"
-          >
-            <Calculator className="w-4 h-4" />
-            Calcular
-          </Link>
         </div>
       </div>
 

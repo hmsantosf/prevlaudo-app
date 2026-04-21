@@ -40,6 +40,40 @@ export async function GET(
   });
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  let body: { dados_tutela: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Body inválido" }, { status: 400 });
+  }
+
+  const { error } = await supabaseAdmin()
+    .from("processos")
+    .update({ dados_tutela: body.dados_tutela })
+    .eq("id", id)
+    .eq("user_id", session.user.id);
+
+  if (error) {
+    return NextResponse.json(
+      { error: "Erro ao salvar dados da tutela", detalhe: error.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

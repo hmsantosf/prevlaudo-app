@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
+  ChevronRight,
   UploadCloud,
   FileText,
   X,
@@ -12,6 +13,8 @@ import {
   AlertTriangle,
   ExternalLink,
 } from "lucide-react";
+import PdfViewer from "@/components/processos/PdfViewer";
+import Step3TutelaForm from "@/components/processos/Step3TutelaForm";
 import type { DadosTutela, PagamentoTutela } from "@/lib/gemini-extract-tutela";
 
 function formatBRL(valor: number): string {
@@ -52,21 +55,15 @@ function TabelaPagamentos({ pagamentos }: { pagamentos: PagamentoTutela[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-100 bg-gray-50 text-left">
-            <th className="px-4 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">
-              Referência
-            </th>
-            <th className="px-4 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide text-right">
-              Valor
-            </th>
+            <th className="px-4 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide">Referência</th>
+            <th className="px-4 py-3 font-medium text-gray-500 uppercase text-xs tracking-wide text-right">Valor</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {pagamentos.map((p, i) => (
             <tr key={i} className="hover:bg-gray-50 transition-colors">
               <td className="px-4 py-2.5 text-gray-700 font-mono text-xs">{p.referencia || "—"}</td>
-              <td className="px-4 py-2.5 text-gray-900 text-right tabular-nums">
-                {formatBRL(p.valor)}
-              </td>
+              <td className="px-4 py-2.5 text-gray-900 text-right tabular-nums">{formatBRL(p.valor)}</td>
             </tr>
           ))}
         </tbody>
@@ -75,9 +72,7 @@ function TabelaPagamentos({ pagamentos }: { pagamentos: PagamentoTutela[] }) {
             <td className="px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">
               Total ({pagamentos.length} parcela{pagamentos.length !== 1 ? "s" : ""})
             </td>
-            <td className="px-4 py-3 text-right font-bold text-gray-900 tabular-nums">
-              {formatBRL(total)}
-            </td>
+            <td className="px-4 py-3 text-right font-bold text-gray-900 tabular-nums">{formatBRL(total)}</td>
           </tr>
         </tfoot>
       </table>
@@ -88,20 +83,30 @@ function TabelaPagamentos({ pagamentos }: { pagamentos: PagamentoTutela[] }) {
 export default function TutelaPage() {
   const { id } = useParams<{ id: string }>();
 
-  // Initial load
+  // Initial load from server
   const [carregandoInicial, setCarregandoInicial] = useState(true);
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
 
-  // Data
+  // Data & view mode
   const [dados, setDados] = useState<DadosTutela | null>(null);
+  const [modoSplit, setModoSplit] = useState(false); // true = split panel after fresh extraction
 
   // Upload
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [pdfObjectUrl, setPdfObjectUrl] = useState<string | null>(null);
   const [arrastando, setArrastando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Split panel
+  const [termoBusca, setTermoBusca] = useState("");
+  const [leftPct, setLeftPct] = useState(45);
+  const [collapsed, setCollapsed] = useState(false);
+  const draggingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Initial load
   useEffect(() => {
     fetch(`/api/processos/${id}/tutela`)
       .then((r) => r.json())
@@ -115,15 +120,34 @@ export default function TutelaPage() {
       .finally(() => setCarregandoInicial(false));
   }, [id]);
 
+  // Object URL for uploaded file
+  useEffect(() => {
+    if (!arquivo) { setPdfObjectUrl(null); return; }
+    const url = URL.createObjectURL(arquivo);
+    setPdfObjectUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [arquivo]);
+
+  // Split panel drag
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!draggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newPct = ((e.clientX - rect.left) / rect.width) * 100;
+      setLeftPct(Math.min(80, Math.max(15, newPct)));
+    };
+    const onMouseUp = () => { draggingRef.current = false; };
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+
   const selecionarArquivo = (file: File) => {
-    if (file.type !== "application/pdf") {
-      setErro("Envie um arquivo PDF.");
-      return;
-    }
-    if (file.size > 20 * 1024 * 1024) {
-      setErro("O arquivo deve ter no máximo 20 MB.");
-      return;
-    }
+    if (file.type !== "application/pdf") { setErro("Envie um arquivo PDF."); return; }
+    if (file.size > 20 * 1024 * 1024) { setErro("O arquivo deve ter no máximo 20 MB."); return; }
     setErro("");
     setArquivo(file);
   };
@@ -144,17 +168,12 @@ export default function TutelaPage() {
     formData.append("pdf", arquivo);
 
     try {
-      const res = await fetch(`/api/processos/${id}/tutela`, {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch(`/api/processos/${id}/tutela`, { method: "POST", body: formData });
       const json = await res.json();
-      if (!res.ok) {
-        setErro(json.error ?? "Erro ao processar o PDF.");
-        return;
-      }
+      if (!res.ok) { setErro(json.error ?? "Erro ao processar o PDF."); return; }
       setDados(json.dados_tutela as DadosTutela);
       setPdfSignedUrl(null);
+      setModoSplit(true);
     } catch {
       setErro("Erro de conexão. Tente novamente.");
     } finally {
@@ -162,7 +181,23 @@ export default function TutelaPage() {
     }
   };
 
-  // ── Carregando estado inicial ─────────────────────────────────────
+  const salvarEdicao = useCallback(async (dadosEditados: DadosTutela) => {
+    const res = await fetch(`/api/processos/${id}/tutela`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dados_tutela: dadosEditados }),
+    });
+    if (!res.ok) {
+      const json = await res.json();
+      throw new Error(json.error ?? "Erro ao salvar");
+    }
+    setDados(dadosEditados);
+    setModoSplit(false);
+    setArquivo(null);
+    setTermoBusca("");
+  }, [id]);
+
+  // ── Carregando estado inicial ──────────────────────────────────────
   if (carregandoInicial) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -171,7 +206,83 @@ export default function TutelaPage() {
     );
   }
 
-  // ── Visualização dos dados salvos ─────────────────────────────────
+  // ── Split panel: após extração fresca via upload ───────────────────
+  if (dados && modoSplit) {
+    return (
+      <div className="w-full flex flex-col" style={{ height: "calc(100vh - 64px)" }}>
+        {/* Barra superior */}
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-white flex-shrink-0">
+          <button
+            onClick={() => { setDados(null); setModoSplit(false); setArquivo(null); setErro(""); setTermoBusca(""); }}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Voltar
+          </button>
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-gray-900">Tutela Antecipada</span>
+          </div>
+        </div>
+
+        {/* Split panels */}
+        <div ref={containerRef} className="flex flex-1 overflow-hidden">
+
+          {/* Painel esquerdo: PDF */}
+          {!collapsed && (
+            <div style={{ width: `${leftPct}%` }} className="flex-shrink-0 overflow-hidden flex flex-col">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 border-b border-gray-700 flex-shrink-0">
+                <FileText className="w-3.5 h-3.5 text-gray-400" />
+                <span className="text-xs text-gray-300 font-medium">Tutela Antecipada</span>
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {pdfObjectUrl ? (
+                  <PdfViewer file={pdfObjectUrl} termoBusca={termoBusca} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400 text-sm" style={{ background: "#2b2b2b" }}>
+                    Carregando PDF…
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Divisor arrastável */}
+          <div className="relative flex-shrink-0 flex items-center select-none">
+            <div
+              className="w-1.5 h-full bg-gray-200 hover:bg-blue-300 cursor-col-resize transition-colors"
+              onMouseDown={(e) => { e.preventDefault(); draggingRef.current = true; }}
+            />
+            <button
+              onClick={() => setCollapsed((c) => !c)}
+              className="absolute z-10 w-6 h-10 bg-white border border-gray-200 rounded-md shadow-sm flex items-center justify-center hover:bg-gray-50 transition"
+              style={{ left: "50%", transform: "translateX(-50%)" }}
+              title={collapsed ? "Expandir painel PDF" : "Ocultar painel PDF"}
+            >
+              {collapsed
+                ? <ChevronRight className="w-3 h-3 text-gray-500" />
+                : <ChevronLeft  className="w-3 h-3 text-gray-500" />
+              }
+            </button>
+          </div>
+
+          {/* Painel direito: formulário */}
+          <div className="flex-1 overflow-y-auto bg-white">
+            <div className="p-6">
+              <Step3TutelaForm
+                dados={dados}
+                onVoltar={() => { setDados(null); setModoSplit(false); setArquivo(null); setErro(""); setTermoBusca(""); }}
+                onSalvar={salvarEdicao}
+                onCampoFoco={(valor) => setTermoBusca(valor)}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Visualização estática dos dados salvos ─────────────────────────
   if (dados) {
     return (
       <div className="max-w-5xl mx-auto p-8 space-y-6">
@@ -193,19 +304,17 @@ export default function TutelaPage() {
               <p className="text-sm text-gray-500">{dados.nomeCredor || "—"}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {pdfSignedUrl && (
-              <a
-                href={pdfSignedUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Ver PDF
-              </a>
-            )}
-          </div>
+          {pdfSignedUrl && (
+            <a
+              href={pdfSignedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Ver PDF
+            </a>
+          )}
         </div>
 
         <Section title="Dados do Plano">
@@ -215,12 +324,12 @@ export default function TutelaPage() {
         </Section>
 
         <Section title="Dados do Credor">
-          <Field label="Nome"               value={dados.nomeCredor} />
-          <Field label="CPF"                value={dados.cpfCredor} />
-          <Field label="Matrícula AERUS"    value={dados.matriculaAerus} />
+          <Field label="Nome"                value={dados.nomeCredor} />
+          <Field label="CPF"                 value={dados.cpfCredor} />
+          <Field label="Matrícula AERUS"     value={dados.matriculaAerus} />
           <Field label="Isonomia Individual" value={dados.isonomiaIndividual} />
-          <Field label="IIP"                value={dados.iip} />
-          <Field label="Data do Documento"  value={dados.dataDocumento} />
+          <Field label="IIP"                 value={dados.iip} />
+          <Field label="Data do Documento"   value={dados.dataDocumento} />
         </Section>
 
         <Section title="Valores">
@@ -247,7 +356,7 @@ export default function TutelaPage() {
     );
   }
 
-  // ── Tela de upload ────────────────────────────────────────────────
+  // ── Tela de upload ─────────────────────────────────────────────────
   return (
     <div className="max-w-3xl mx-auto p-8 space-y-6">
       <Link
@@ -362,4 +471,3 @@ export default function TutelaPage() {
     </div>
   );
 }
-

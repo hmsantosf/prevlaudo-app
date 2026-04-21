@@ -86,6 +86,7 @@ export default function TutelaPage() {
   // Initial load from server
   const [carregandoInicial, setCarregandoInicial] = useState(true);
   const [pdfSignedUrl, setPdfSignedUrl] = useState<string | null>(null);
+  const [clienteId, setClienteId] = useState<string | null>(null);
 
   // Data & view mode
   const [dados, setDados] = useState<DadosTutela | null>(null);
@@ -111,6 +112,7 @@ export default function TutelaPage() {
     fetch(`/api/processos/${id}/tutela`)
       .then((r) => r.json())
       .then((json) => {
+        if (json.cliente_id) setClienteId(json.cliente_id as string);
         if (json.dados_tutela) {
           setDados(json.dados_tutela as DadosTutela);
           setPdfSignedUrl(json.pdf_signed_url ?? null);
@@ -287,11 +289,11 @@ export default function TutelaPage() {
     return (
       <div className="max-w-5xl mx-auto p-8 space-y-6">
         <Link
-          href={`/dashboard/processos/${id}/dados`}
+          href={clienteId ? `/dashboard/clientes/${clienteId}/processos` : `/dashboard/clientes`}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition"
         >
           <ChevronLeft className="w-4 h-4" />
-          Voltar para dados do processo
+          Voltar para processos
         </Link>
 
         <div className="flex items-center justify-between">

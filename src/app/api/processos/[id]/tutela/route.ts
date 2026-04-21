@@ -16,7 +16,7 @@ export async function GET(
 
   const { data: processo, error } = await supabaseAdmin()
     .from("processos")
-    .select("id, dados_tutela, pdf_tutela_url")
+    .select("id, dados_tutela, pdf_tutela_url, cliente_id")
     .eq("id", id)
     .eq("user_id", session.user.id)
     .single();
@@ -37,6 +37,7 @@ export async function GET(
   return NextResponse.json({
     dados_tutela: processo.dados_tutela ?? null,
     pdf_signed_url: pdfSignedUrl,
+    cliente_id: processo.cliente_id ?? null,
   });
 }
 

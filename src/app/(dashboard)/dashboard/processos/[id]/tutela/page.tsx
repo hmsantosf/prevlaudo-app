@@ -270,56 +270,57 @@ export default function TutelaPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-        <div
-          onDrop={onDrop}
-          onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
-          onDragLeave={() => setArrastando(false)}
-          onClick={() => inputRef.current?.click()}
-          className={`
-            relative flex flex-col items-center justify-center gap-4
-            border-2 border-dashed rounded-2xl p-12 cursor-pointer transition-all
-            ${arrastando
-              ? "border-blue-500 bg-blue-50 scale-[1.01]"
-              : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/40"
-            }
-          `}
-        >
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${arrastando ? "bg-blue-100" : "bg-white shadow-sm"}`}>
-            <UploadCloud className={`w-8 h-8 transition-colors ${arrastando ? "text-blue-600" : "text-gray-400"}`} />
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-gray-700">
-              {arrastando ? "Solte o arquivo aqui" : "Arraste e solte o PDF da Tutela Antecipada"}
-            </p>
-            <p className="text-sm text-gray-400 mt-1">ou</p>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
-            className="bg-white border border-gray-300 hover:border-blue-500 hover:text-blue-600 text-gray-600 font-medium text-sm px-5 py-2 rounded-lg transition shadow-sm"
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) selecionarArquivo(f); }}
+      />
+
+      {!arquivo ? (
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+          <div
+            onDrop={onDrop}
+            onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
+            onDragLeave={() => setArrastando(false)}
+            onClick={() => inputRef.current?.click()}
+            className={`
+              relative flex flex-col items-center justify-center gap-4
+              border-2 border-dashed rounded-2xl p-12 cursor-pointer transition-all
+              ${arrastando
+                ? "border-blue-500 bg-blue-50 scale-[1.01]"
+                : "border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/40"
+              }
+            `}
           >
-            Escolher arquivo
-          </button>
-          <p className="text-xs text-gray-400">Somente PDF · máx. 20 MB</p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) selecionarArquivo(f); }}
-          />
-        </div>
-
-        {erro && !arquivo && (
-          <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-red-600">{erro}</p>
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors ${arrastando ? "bg-blue-100" : "bg-white shadow-sm"}`}>
+              <UploadCloud className={`w-8 h-8 transition-colors ${arrastando ? "text-blue-600" : "text-gray-400"}`} />
+            </div>
+            <div className="text-center">
+              <p className="font-medium text-gray-700">
+                {arrastando ? "Solte o arquivo aqui" : "Arraste e solte o PDF da Tutela Antecipada"}
+              </p>
+              <p className="text-sm text-gray-400 mt-1">ou</p>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
+              className="bg-white border border-gray-300 hover:border-blue-500 hover:text-blue-600 text-gray-600 font-medium text-sm px-5 py-2 rounded-lg transition shadow-sm"
+            >
+              Escolher arquivo
+            </button>
+            <p className="text-xs text-gray-400">Somente PDF · máx. 20 MB</p>
           </div>
-        )}
-      </div>
 
-      {arquivo && (
+          {erro && (
+            <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-red-600">{erro}</p>
+            </div>
+          )}
+        </div>
+      ) : (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
           <div className="flex items-center gap-3 border border-gray-200 rounded-xl p-3 bg-gray-50">
             <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -361,3 +362,4 @@ export default function TutelaPage() {
     </div>
   );
 }
+

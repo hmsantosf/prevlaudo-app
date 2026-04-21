@@ -305,15 +305,17 @@ export default function TutelaPage() {
             </div>
           </div>
           {pdfSignedUrl && (
-            <a
-              href={pdfSignedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={async () => {
+                const res = await fetch(`/api/processos/${id}/tutela`);
+                const json = await res.json();
+                if (json.pdf_signed_url) window.open(json.pdf_signed_url, "_blank");
+              }}
               className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition"
             >
               <ExternalLink className="w-4 h-4" />
               Ver PDF
-            </a>
+            </button>
           )}
         </div>
 

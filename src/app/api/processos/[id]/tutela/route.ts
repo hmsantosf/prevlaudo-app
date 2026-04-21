@@ -164,10 +164,28 @@ export async function POST(
 
   const { _respostaGemini, ...dadosTutela } = resultado;
 
+  // ── Upload do PDF para o Storage ──────────────────────────────
+  const sanitize = (s: string) => s.replace(/[^a-zA-Z0-9\-_]/g, "_");
+  const cpf = dadosTutela.cpfCredor ? sanitize(dadosTutela.cpfCredor) : id;
+  const storagePath = `${session.user.id}/${cpf}/tutela.pdf`;
+
+  const { error: errUpload } = await admin.storage
+    .from("processos")
+    .upload(storagePath, buffer, { contentType: "application/pdf", upsert: true });
+
+  if (errUpload) {
+    console.error("[tutela] erro no upload do Storage:", errUpload.message);
+  }
+
+  const pdfTutelaUrl = errUpload ? null : storagePath;
+
   // ── Salvar no processo ────────────────────────────────────────
+  const updatePayload: Record<string, unknown> = { dados_tutela: dadosTutela };
+  if (pdfTutelaUrl) updatePayload.pdf_tutela_url = pdfTutelaUrl;
+
   const { error: errUpdate } = await admin
     .from("processos")
-    .update({ dados_tutela: dadosTutela })
+    .update(updatePayload)
     .eq("id", id)
     .eq("user_id", session.user.id);
 
